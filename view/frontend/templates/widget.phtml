@@ -1,0 +1,11 @@
+<?php
+/**
+ * @var \Bydn\SoloSearch\Block\Widget $block
+ */
+?>
+<script src="<?= $block->escapeHtmlAttr($block->getScriptUrl()) ?>"
+    data-engine="<?= $block->escapeHtmlAttr($block->getSearchEngineId()) ?>"
+    <?php if ($block->getInputSelector() !== ''): ?>data-input="<?= $block->escapeHtmlAttr($block->getInputSelector()) ?>"<?php endif; ?>
+    <?php if ($block->getLocale() !== ''): ?>data-locale="<?= $block->escapeHtmlAttr($block->getLocale()) ?>"<?php endif; ?>
+    <?php if ($block->getTemplateSetId() !== ''): ?>data-template="<?= $block->escapeHtmlAttr($block->getTemplateSetId()) ?>"<?php endif; ?>
+></script>

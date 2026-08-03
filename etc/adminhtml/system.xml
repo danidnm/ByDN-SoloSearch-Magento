@@ -15,12 +15,16 @@
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <comment>Enables SoloSearch feed generation for this store view</comment>
                 </field>
-                <field id="include_configurable_products" translate="label" type="select" sortOrder="2" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="api_token" translate="label" type="obscure" sortOrder="2" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>API Token</label>
+                    <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
+                    <comment>Generated from the SearchEngine's page in SoloSearch's panel. Currently only used to ask SoloSearch to re-fetch this store's feed on demand instead of waiting for its own schedule; more uses are planned</comment>
+                </field>
+                <field id="include_configurable_products" translate="label" type="select" sortOrder="3" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Include Configurable Products</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                    <comment>Simple products are always included regardless of this setting - whether a simple that is a configurable's child should be found on its own is controlled by its own Magento visibility setting, not here</comment>
                 </field>
-                <field id="configurable_price_mode" translate="label" type="select" sortOrder="3" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="configurable_price_mode" translate="label" type="select" sortOrder="4" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Configurable Product Price</label>
                     <source_model>Bydn\SoloSearch\Model\Source\ConfigurablePriceMode</source_model>
                     <comment>Which child variant's price to export for configurable products (they don't have a meaningful price of their own in Magento). "Cheapest enabled child price" falls back to any child, including disabled ones, if none is enabled</comment>
@@ -28,23 +32,23 @@
                         <field id="include_configurable_products">1</field>
                     </depends>
                 </field>
-                <field id="include_bundle_products" translate="label" type="select" sortOrder="4" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="include_bundle_products" translate="label" type="select" sortOrder="5" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Include Bundle Products</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="include_virtual_products" translate="label" type="select" sortOrder="5" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="include_virtual_products" translate="label" type="select" sortOrder="6" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Include Virtual Products</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="include_downloadable_products" translate="label" type="select" sortOrder="6" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="include_downloadable_products" translate="label" type="select" sortOrder="7" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Include Downloadable Products</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="include_grouped_products" translate="label" type="select" sortOrder="7" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="include_grouped_products" translate="label" type="select" sortOrder="8" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Include Grouped Products</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="only_navigable_categories" translate="label" type="select" sortOrder="8" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="only_navigable_categories" translate="label" type="select" sortOrder="9" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Only Categories In Navigation Menu</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <comment>When enabled, a product's exported categories exclude any category not shown in the navigation menu</comment>
@@ -61,6 +65,9 @@
                     <label>Generation Time</label>
                     <backend_model>Bydn\SoloSearch\Model\Config\Backend\GenerationTime</backend_model>
                     <comment>There is a single daily schedule shared by every store view (default scope only)</comment>
+                    <depends>
+                        <field id="daily_generation_enabled">1</field>
+                    </depends>
                 </field>
                 <field id="feed_path" translate="label" type="text" sortOrder="4" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Feed File Path</label>
@@ -76,6 +83,50 @@
                     <frontend_model>Bydn\SoloSearch\Block\Adminhtml\Form\Field\FieldMapping</frontend_model>
                     <backend_model>Magento\Config\Model\Config\Backend\Serialized\ArraySerialized</backend_model>
                     <comment>Maps each SoloSearch feed field to a Magento product attribute code</comment>
+                </field>
+            </group>
+            <group id="widget" translate="label" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Widget Embed</label>
+                <field id="enable" translate="label" type="select" sortOrder="1" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Enable Widget Embed</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>Outputs the SoloSearch widget script tag on every storefront page for this store view, using the Search Engine ID configured below</comment>
+                </field>
+                <field id="search_engine_id" translate="label" type="text" sortOrder="2" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Search Engine ID</label>
+                    <comment>The UUID of the SearchEngine in SoloSearch's panel that this store's widget should use</comment>
+                    <depends>
+                        <field id="enable">1</field>
+                    </depends>
+                </field>
+                <field id="script_url" translate="label" type="text" sortOrder="3" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Widget Script URL</label>
+                    <comment>The widget.js URL provided by SoloSearch. Default: https://api.solosearch.app/widget.js</comment>
+                    <depends>
+                        <field id="enable">1</field>
+                    </depends>
+                </field>
+                <field id="input_selector" translate="label" type="text" sortOrder="4" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Search Input Selector</label>
+                    <comment>CSS selector of this theme's own search input. Defaults to #search - only change this if the theme's search field uses a different id/selector</comment>
+                    <depends>
+                        <field id="enable">1</field>
+                    </depends>
+                </field>
+                <field id="locale" translate="label" type="select" sortOrder="5" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Locale</label>
+                    <source_model>Bydn\SoloSearch\Model\Source\Locale</source_model>
+                    <comment>Leave as "Use engine default" to use the engine's own configured locale in SoloSearch's panel</comment>
+                    <depends>
+                        <field id="enable">1</field>
+                    </depends>
+                </field>
+                <field id="template_set_id" translate="label" type="text" sortOrder="6" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Template Set ID (override)</label>
+                    <comment>Optional, rarely needed. UUID of a specific SearchEngineTemplateSet to force, instead of the engine's current default template. Leave empty unless SoloSearch support asks you to set it</comment>
+                    <depends>
+                        <field id="enable">1</field>
+                    </depends>
                 </field>
             </group>
         </section>

@@ -26,6 +26,20 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
 
     const XML_PATH_FIELD_MAPPING = 'solosearch/field_mapping/mapping';
 
+    const XML_PATH_API_TOKEN = 'solosearch/general/api_token';
+
+    const XML_PATH_WIDGET_ENABLE = 'solosearch/widget/enable';
+
+    const XML_PATH_SEARCH_ENGINE_ID = 'solosearch/widget/search_engine_id';
+
+    const XML_PATH_WIDGET_SCRIPT_URL = 'solosearch/widget/script_url';
+
+    const XML_PATH_WIDGET_INPUT_SELECTOR = 'solosearch/widget/input_selector';
+
+    const XML_PATH_WIDGET_LOCALE = 'solosearch/widget/locale';
+
+    const XML_PATH_WIDGET_TEMPLATE_SET_ID = 'solosearch/widget/template_set_id';
+
     // Used when general/feed_path is not configured for the store view. Under pub/ (Magento's
     // public docroot), not the bare media/ at the Magento root, so the default is downloadable
     // over HTTP without any extra web server configuration.
@@ -57,20 +71,28 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
     private $feedPathValidator;
 
     /**
+     * @var \Magento\Framework\Encryption\EncryptorInterface
+     */
+    private $encryptor;
+
+    /**
      * @param \Magento\Framework\App\Helper\Context $context
      * @param \Magento\Framework\Serialize\Serializer\Json $jsonSerializer
      * @param \Magento\Store\Model\StoreManagerInterface $storeManager
      * @param \Bydn\SoloSearch\Model\FeedPathValidator $feedPathValidator
+     * @param \Magento\Framework\Encryption\EncryptorInterface $encryptor
      */
     public function __construct(
         \Magento\Framework\App\Helper\Context $context,
         \Magento\Framework\Serialize\Serializer\Json $jsonSerializer,
         \Magento\Store\Model\StoreManagerInterface $storeManager,
-        \Bydn\SoloSearch\Model\FeedPathValidator $feedPathValidator
+        \Bydn\SoloSearch\Model\FeedPathValidator $feedPathValidator,
+        \Magento\Framework\Encryption\EncryptorInterface $encryptor
     ) {
         $this->jsonSerializer = $jsonSerializer;
         $this->storeManager = $storeManager;
         $this->feedPathValidator = $feedPathValidator;
+        $this->encryptor = $encryptor;
         parent::__construct($context);
     }
 
@@ -273,6 +295,120 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
         }
 
         return $mapping;
+    }
+
+    /**
+     * Returns the UUID of the SearchEngine (in SoloSearch's panel) this store talks to.
+     * Used both for the widget embed's data-engine attribute and to build the reindex
+     * endpoint URL (/api/v1/search-engines/{uuid}/reindex).
+     *
+     * @param int|null $storeId
+     * @return string
+     */
+    public function getSearchEngineId($storeId = null)
+    {
+        return (string) $this->scopeConfig->getValue(
+            self::XML_PATH_SEARCH_ENGINE_ID,
+            \Magento\Store\Model\ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
+    }
+
+    /**
+     * Returns the decrypted SoloSearch API Token for this store. Stored encrypted
+     * (type="obscure" + Magento\Config\Model\Config\Backend\Encrypted in system.xml),
+     * so it must be decrypted here rather than read as-is.
+     *
+     * @param int|null $storeId
+     * @return string
+     */
+    public function getApiToken($storeId = null)
+    {
+        $encrypted = (string) $this->scopeConfig->getValue(
+            self::XML_PATH_API_TOKEN,
+            \Magento\Store\Model\ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
+
+        return $encrypted === '' ? '' : $this->encryptor->decrypt($encrypted);
+    }
+
+    /**
+     * Returns whether the widget script tag should be output on the storefront
+     *
+     * @param int|null $storeId
+     * @return bool
+     */
+    public function isWidgetEnabled($storeId = null)
+    {
+        return $this->scopeConfig->isSetFlag(
+            self::XML_PATH_WIDGET_ENABLE,
+            \Magento\Store\Model\ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
+    }
+
+    /**
+     * Returns the widget.js URL provided by SoloSearch
+     *
+     * @param int|null $storeId
+     * @return string
+     */
+    public function getWidgetScriptUrl($storeId = null)
+    {
+        return (string) $this->scopeConfig->getValue(
+            self::XML_PATH_WIDGET_SCRIPT_URL,
+            \Magento\Store\Model\ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
+    }
+
+    /**
+     * Returns the CSS selector of this theme's own search input, or '' to let the widget
+     * fall back to its own default (#search)
+     *
+     * @param int|null $storeId
+     * @return string
+     */
+    public function getWidgetInputSelector($storeId = null)
+    {
+        return (string) $this->scopeConfig->getValue(
+            self::XML_PATH_WIDGET_INPUT_SELECTOR,
+            \Magento\Store\Model\ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
+    }
+
+    /**
+     * Returns the locale override for the widget, or '' to let it use the engine's own
+     * configured locale in SoloSearch's panel
+     *
+     * @param int|null $storeId
+     * @return string
+     */
+    public function getWidgetLocale($storeId = null)
+    {
+        return (string) $this->scopeConfig->getValue(
+            self::XML_PATH_WIDGET_LOCALE,
+            \Magento\Store\Model\ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
+    }
+
+    /**
+     * Returns the UUID of a SearchEngineTemplateSet to force via data-template, or '' to let
+     * the widget use the engine's current default template
+     *
+     * @param int|null $storeId
+     * @return string
+     */
+    public function getWidgetTemplateSetId($storeId = null)
+    {
+        return (string) $this->scopeConfig->getValue(
+            self::XML_PATH_WIDGET_TEMPLATE_SET_ID,
+            \Magento\Store\Model\ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
     }
 
     /**

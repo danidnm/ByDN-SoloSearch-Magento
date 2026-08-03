@@ -2,8 +2,17 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
     <default>
         <solosearch>
+            <widget>
+                <enable>0</enable>
+                <search_engine_id></search_engine_id>
+                <script_url>https://api.solosearch.app/widget.js</script_url>
+                <input_selector>#search</input_selector>
+                <locale></locale>
+                <template_set_id></template_set_id>
+            </widget>
             <general>
                 <enable>0</enable>
+                <api_token></api_token>
                 <include_configurable_products>1</include_configurable_products>
                 <configurable_price_mode>cheapest_child</configurable_price_mode>
                 <include_bundle_products>1</include_bundle_products>
