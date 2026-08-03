@@ -210,7 +210,7 @@ class SmokeTestCommand extends \Symfony\Component\Console\Command\Command
             return \Symfony\Component\Console\Command\Command::FAILURE;
         }
 
-        $this->appState->setAreaCode(Area::AREA_CRONTAB);
+        $this->ensureAreaCode();
 
         $this->recoverFromInterruptedRun($output);
 
@@ -875,6 +875,23 @@ class SmokeTestCommand extends \Symfony\Component\Console\Command\Command
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
+
+    /**
+     * Sets the crontab area code, unless it is already set - e.g. when this command runs as part
+     * of a batch process that iterates several stores within the same PHP process instead of one
+     * bin/magento invocation per store, only the first call may set it; State::setAreaCode() throws
+     * "Area code is already set" on every call after that, even though the value would be the same.
+     *
+     * @return void
+     */
+    private function ensureAreaCode()
+    {
+        try {
+            $this->appState->getAreaCode();
+        } catch (\Magento\Framework\Exception\LocalizedException $e) {
+            $this->appState->setAreaCode(Area::AREA_CRONTAB);
+        }
+    }
 
     /**
      * Regenerates the feed into a scratch path under var/ (never the real configured path) and
