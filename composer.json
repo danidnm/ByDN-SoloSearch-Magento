@@ -1,0 +1,18 @@
+{
+    "name": "bydn/module-solosearch",
+    "description": "Generates a product feed for SoloSearch integration.",
+    "type": "magento2-module",
+    "license": "proprietary",
+    "require": {
+        "php": "~8.1.0||~8.2.0||~8.3.0",
+        "magento/framework": "*"
+    },
+    "autoload": {
+        "files": [
+            "registration.php"
+        ],
+        "psr-4": {
+            "Bydn\\SoloSearch\\": ""
+        }
+    }
+}
