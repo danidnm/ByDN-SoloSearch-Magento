@@ -78,7 +78,7 @@ class GenerateFeedCommand extends \Symfony\Component\Console\Command\Command
     {
         $this->logger->info(__METHOD__ . ': start');
 
-        $this->appState->setAreaCode(\Magento\Framework\App\Area::AREA_CRONTAB);
+        $this->ensureAreaCode();
 
         $storeOption = $input->getOption(self::PARAM_STORE);
 
@@ -114,5 +114,22 @@ class GenerateFeedCommand extends \Symfony\Component\Console\Command\Command
         $this->logger->info(__METHOD__ . ': end');
 
         return \Symfony\Component\Console\Command\Command::SUCCESS;
+    }
+
+    /**
+     * Sets the crontab area code, unless it is already set - e.g. when this command runs as part
+     * of a batch process that iterates several stores within the same PHP process instead of one
+     * bin/magento invocation per store, only the first call may set it; State::setAreaCode() throws
+     * "Area code is already set" on every call after that, even though the value would be the same.
+     *
+     * @return void
+     */
+    private function ensureAreaCode()
+    {
+        try {
+            $this->appState->getAreaCode();
+        } catch (\Magento\Framework\Exception\LocalizedException $e) {
+            $this->appState->setAreaCode(\Magento\Framework\App\Area::AREA_CRONTAB);
+        }
     }
 }
