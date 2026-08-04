@@ -8,6 +8,11 @@ namespace Bydn\SoloSearch\Model;
  */
 class SoloSearchClient
 {
+    // Keeps a slow/unreachable SoloSearch API from stalling feed generation - this request runs
+    // synchronously right after generate() in generateForStoreIfEnabled(), inside the same cron
+    // run that processes every other store, so a hung connection here would delay all of them too.
+    const REQUEST_TIMEOUT_SECONDS = 5;
+
     /**
      * @var \Magento\Framework\HTTP\Client\Curl
      */
@@ -65,6 +70,7 @@ class SoloSearchClient
         $url = rtrim($apiUrl, '/') . '/api/v1/search-engines/' . rawurlencode($searchEngineId) . '/reindex';
 
         try {
+            $this->httpClient->setTimeout(self::REQUEST_TIMEOUT_SECONDS);
             $this->httpClient->setHeaders(['Authorization' => 'Bearer ' . $token]);
             $this->httpClient->post($url, []);
             $status = $this->httpClient->getStatus();
