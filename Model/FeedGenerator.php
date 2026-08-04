@@ -168,13 +168,18 @@ class FeedGenerator
      * regardless of the daily schedule - see generateForScheduledStores() for the cron path, which
      * additionally respects daily_generation_enabled.
      *
+     * A failure generating one store's feed is caught and logged (see generateOneOfManyStores())
+     * so it can't stop the rest of the batch from running - not used by the single-store CLI path
+     * (solosearch:feed:generate --store=X calls generateForStoreIfEnabled() directly), which should
+     * still surface a failure clearly instead of silently swallowing it.
+     *
      * @return void
      * @throws \Magento\Framework\Exception\NoSuchEntityException
      */
     public function generateForAllStores()
     {
         foreach ($this->storeManager->getStores() as $store) {
-            $this->generateForStoreIfEnabled((int) $store->getId());
+            $this->generateOneOfManyStores((int) $store->getId());
         }
     }
 
@@ -199,7 +204,26 @@ class FeedGenerator
                 continue;
             }
 
+            $this->generateOneOfManyStores($storeId);
+        }
+    }
+
+    /**
+     * generateForStoreIfEnabled(), isolated so one store's failure (a malformed product, a
+     * filesystem permission issue, whatever) can't stop generateForAllStores()/
+     * generateForScheduledStores() from processing the rest of the stores in the same run.
+     * Catches \Throwable, not just \Exception like the rest of this class - a PHP fatal turned
+     * into a Throwable (e.g. a TypeError from unexpected product data) must be contained here too.
+     *
+     * @param int $storeId
+     * @return void
+     */
+    private function generateOneOfManyStores($storeId)
+    {
+        try {
             $this->generateForStoreIfEnabled($storeId);
+        } catch (\Throwable $e) {
+            $this->logger->error(__METHOD__ . ": store {$storeId} failed, skipping to the next store - " . $e->getMessage(), ['exception' => $e]);
         }
     }
 
