@@ -5,14 +5,14 @@
             <widget>
                 <enable>0</enable>
                 <search_engine_id></search_engine_id>
-                <script_url>https://api.solosearch.app/widget.js</script_url>
+                <script_url>https://search.solosearch.app/widget.js</script_url>
                 <input_selector>#search</input_selector>
                 <locale></locale>
                 <template_set_id></template_set_id>
             </widget>
             <general>
                 <enable>0</enable>
-                <api_url></api_url>
+                <api_url>https://app.solosearch.app</api_url>
                 <api_token></api_token>
                 <include_configurable_products>1</include_configurable_products>
                 <configurable_price_mode>cheapest_child</configurable_price_mode>

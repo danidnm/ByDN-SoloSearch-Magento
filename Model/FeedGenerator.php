@@ -72,9 +72,9 @@ class FeedGenerator
     private $productVisibility;
 
     /**
-     * @var \Psr\Log\LoggerInterface
+     * @var \Bydn\SoloSearch\Model\SoloSearchClient
      */
-    private $logger;
+    private $soloSearchClient;
 
     /**
      * @var \Bydn\SoloSearch\Helper\Config
@@ -82,9 +82,9 @@ class FeedGenerator
     private $config;
 
     /**
-     * @var \Bydn\SoloSearch\Model\SoloSearchClient
+     * @var \Psr\Log\LoggerInterface
      */
-    private $soloSearchClient;
+    private $logger;
 
     /**
      * Store view id for the current generate() call.
@@ -144,9 +144,9 @@ class FeedGenerator
         \Magento\Catalog\Model\ResourceModel\Category\CollectionFactory $categoryCollectionFactory,
         \Magento\CatalogInventory\Api\StockConfigurationInterface $stockConfiguration,
         \Magento\Catalog\Model\Product\Visibility $productVisibility,
-        \Psr\Log\LoggerInterface $logger,
+        \Bydn\SoloSearch\Model\SoloSearchClient $soloSearchClient,
         \Bydn\SoloSearch\Helper\Config $config,
-        \Bydn\SoloSearch\Model\SoloSearchClient $soloSearchClient
+        \Psr\Log\LoggerInterface $logger
     ) {
         $this->filesystem = $filesystem;
         $this->moduleManager = $moduleManager;
@@ -156,9 +156,9 @@ class FeedGenerator
         $this->categoryCollectionFactory = $categoryCollectionFactory;
         $this->stockConfiguration = $stockConfiguration;
         $this->productVisibility = $productVisibility;
-        $this->logger = $logger;
-        $this->config = $config;
         $this->soloSearchClient = $soloSearchClient;
+        $this->config = $config;
+        $this->logger = $logger;
     }
 
     /**

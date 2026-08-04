@@ -4,7 +4,7 @@ namespace Bydn\SoloSearch\Model;
 
 /**
  * HTTP client for SoloSearch's public API (suite - the panel, not suite-search/the widget host).
- * Currently wraps its only endpoint: asking SoloSearch to re-fetch this store's feed on demand.
+ * Endpoints are added here as SoloSearch's API grows; requestReindex() is the first one.
  */
 class SoloSearchClient
 {

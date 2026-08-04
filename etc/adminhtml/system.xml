@@ -17,12 +17,12 @@
                 </field>
                 <field id="api_url" translate="label" type="text" sortOrder="2" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>API URL</label>
-                    <comment>Base URL of your SoloSearch panel (e.g. https://app.solosearch.app) - not the widget script host below. Used to ask SoloSearch to re-fetch this store's feed on demand after each generation. Leave empty to skip that request</comment>
+                    <comment>Base URL of SoloSearch's API (not the widget script host below - that's a different service). You'll most likely never need to change this</comment>
                 </field>
                 <field id="api_token" translate="label" type="obscure" sortOrder="3" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>API Token</label>
                     <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
-                    <comment>Generated from the SearchEngine's page in SoloSearch's panel. Currently only used to ask SoloSearch to re-fetch this store's feed on demand instead of waiting for its own schedule; more uses are planned</comment>
+                    <comment>Generated from the SearchEngine's page in SoloSearch's panel. Used to authenticate this store's requests to SoloSearch's API</comment>
                 </field>
                 <field id="include_configurable_products" translate="label" type="select" sortOrder="4" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Include Configurable Products</label>
@@ -105,7 +105,7 @@
                 </field>
                 <field id="script_url" translate="label" type="text" sortOrder="3" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Widget Script URL</label>
-                    <comment>The widget.js URL provided by SoloSearch. Default: https://api.solosearch.app/widget.js</comment>
+                    <comment>The widget.js URL provided by SoloSearch. You'll most likely never need to change this</comment>
                     <depends>
                         <field id="enable">1</field>
                     </depends>

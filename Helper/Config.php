@@ -300,10 +300,10 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
     }
 
     /**
-     * Returns the base URL of the SoloSearch panel (suite) - not suite-search's widget host
-     * configured above (Widget Script URL is a different service). Used by SoloSearchClient to
-     * build the reindex request URL. Empty by default; no default value is guessed since no
-     * production URL has been decided for suite yet (unlike widget/script_url).
+     * Returns the base URL of SoloSearch's API (suite) - not suite-search's widget host
+     * configured above (Widget Script URL is a different service). Used by SoloSearchClient for
+     * all API requests. Defaults to the production API (see config.xml); a tenant would only ever
+     * override this for local/staging testing against a different SoloSearch environment.
      *
      * @param int|null $storeId
      * @return string
