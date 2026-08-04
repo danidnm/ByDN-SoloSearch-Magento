@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<csp_whitelist xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Csp:etc/csp_whitelist.xsd">
+    <policies>
+        <!--
+        Only needed for stores running Magento's CSP in "Restrict" mode (Stores > Configuration >
+        Security > Content Security Policies) - most stores ship it in Report-Only, which doesn't
+        block anything, but this covers the ones that do enforce it.
+
+        Whitelists the production widget.js host (solosearch/widget/script_url's default -
+        Helper\Config::getWidgetScriptUrl()). A store that overrides that field to a non-default
+        host (e.g. local/staging testing) needs to whitelist that host itself - this file is
+        static, it can't read admin config at CSP-collection time.
+        -->
+        <policy id="script-src">
+            <values>
+                <value id="solosearch_widget" type="host">search.solosearch.app</value>
+            </values>
+        </policy>
+        <policy id="connect-src">
+            <values>
+                <value id="solosearch_widget" type="host">search.solosearch.app</value>
+            </values>
+        </policy>
+    </policies>
+</csp_whitelist>
