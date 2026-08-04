@@ -516,9 +516,9 @@ class SmokeTestCommand extends \Symfony\Component\Console\Command\Command
     /**
      * disable_add_to_cart is structural (not part of field_mapping) and must correctly flag
      * products that can't be added to cart with a plain product_id+qty=1 request - see
-     * FeedGenerator::hasDisabledAddToCart(). configurable and grouped are always '1' regardless of
-     * catalog data; bundle depends on whether it happens to have a required option, so that one
-     * only checks the value comes back as a valid '0'/'1' rather than asserting which one.
+     * FeedGenerator::hasDisabledAddToCart(). configurable/grouped/bundle are always '1' regardless
+     * of catalog data (bundle is treated the same as the other two even when it happens to have no
+     * required options - see that method's docblock for why); simple is expected '0'.
      *
      * @param \Symfony\Component\Console\Output\OutputInterface $output
      * @param int $storeId
@@ -531,6 +531,7 @@ class SmokeTestCommand extends \Symfony\Component\Console\Command\Command
         $expectedByType = [
             'configurable' => '1',
             'grouped' => '1',
+            'bundle' => '1',
             'simple' => '0',
         ];
 
@@ -556,23 +557,8 @@ class SmokeTestCommand extends \Symfony\Component\Console\Command\Command
             $parts[] = "{$typeId}=>{$value}(" . ($ok ? 'ok' : "FAIL, expected {$expected}") . ')';
         }
 
-        $bundle = $this->findOneProduct($storeId, function (ProductCollection $collection) {
-            $collection->addFieldToFilter('type_id', 'bundle');
-            $collection->addAttributeToFilter('status', Status::STATUS_ENABLED);
-        });
-
-        if ($bundle) {
-            $anyFound = true;
-            $value = $this->extractFieldValue($this->generateFeedContent($storeId, [$bundle->getSku()]), 'disable_add_to_cart');
-            $ok = in_array($value, ['0', '1'], true);
-            $allOk = $allOk && $ok;
-            $parts[] = 'bundle=>' . $value . '(' . ($ok ? 'ok' : 'FAIL, expected 0 or 1') . ')';
-        } else {
-            $parts[] = 'bundle=>skip (none in catalog)';
-        }
-
         if (!$anyFound) {
-            return $this->skip($output, $label, 'no configurable/grouped/simple/bundle product found in the catalog to test with');
+            return $this->skip($output, $label, 'no configurable/grouped/bundle/simple product found in the catalog to test with');
         }
 
         return $this->report($output, $label, $allOk, implode(' ', $parts));

@@ -560,13 +560,14 @@ class FeedGenerator
      * - grouped: always. Magento's own hasRequiredOptions() reports false for these (there is no
      *   "required option" to pick), but they still can't be added this way - they need
      *   super_group[childId]=qty per child product instead, not a single product id.
+     * - bundle: always. In theory a bundle with zero required options could accept a plain add
+     *   (unspecified optional selections are just skipped by Magento's bundle type, not an error),
+     *   but that's a rare, unverified edge case - not worth risking a silently broken/empty cart
+     *   line over, so bundle is treated the same as configurable/grouped regardless of its options.
      * - required_options: native Magento product attribute, kept in sync by core whenever the
      *   product's own "Customizable Options" include at least one required one. Read directly
      *   instead of iterating $product->getOptions(), since that collection isn't reliably loaded
      *   on a product coming from a plain collection (see STRUCTURAL_ATTRIBUTE_CODES).
-     * - bundle: needs its own check - bundle options aren't "custom options" (required_options
-     *   doesn't cover them), and getTypeInstance()->hasRequiredOptions() queries them directly by
-     *   product id/store, so it doesn't depend on anything being preloaded on $product either.
      *
      * @param \Magento\Catalog\Model\Product $product
      * @return bool
@@ -575,19 +576,11 @@ class FeedGenerator
     {
         $typeId = $product->getTypeId();
 
-        if ($typeId === 'configurable' || $typeId === 'grouped') {
+        if ($typeId === 'configurable' || $typeId === 'grouped' || $typeId === 'bundle') {
             return true;
         }
 
-        if ((bool) $product->getData('required_options')) {
-            return true;
-        }
-
-        if ($typeId === 'bundle') {
-            return (bool) $product->getTypeInstance()->hasRequiredOptions($product);
-        }
-
-        return false;
+        return (bool) $product->getData('required_options');
     }
 
     /**
