@@ -11,6 +11,8 @@ class Locale implements \Magento\Framework\Option\ArrayInterface
         'en' => 'English',
         'es' => 'Español',
         'fr' => 'Français',
+        'de' => 'Deutsch',
+        'it' => 'Italiano',
     ];
 
     /**
