@@ -108,7 +108,10 @@ class GenerateFeedCommand extends \Symfony\Component\Console\Command\Command
             return \Symfony\Component\Console\Command\Command::FAILURE;
         }
 
-        $this->feedGenerator->generate((int) $store->getId());
+        // generateForStoreIfEnabled(), not generate() directly, so this path also notifies
+        // SoloSearch to reindex afterwards - the isEnabled() check just above is only here for
+        // this command's own CLI messaging, generateForStoreIfEnabled() repeats it internally.
+        $this->feedGenerator->generateForStoreIfEnabled((int) $store->getId());
 
         $output->writeln("Feed generation finished for store '{$store->getCode()}'.");
         $this->logger->info(__METHOD__ . ': end');

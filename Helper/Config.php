@@ -26,6 +26,8 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
 
     const XML_PATH_FIELD_MAPPING = 'solosearch/field_mapping/mapping';
 
+    const XML_PATH_API_URL = 'solosearch/general/api_url';
+
     const XML_PATH_API_TOKEN = 'solosearch/general/api_token';
 
     const XML_PATH_WIDGET_ENABLE = 'solosearch/widget/enable';
@@ -295,6 +297,24 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
         }
 
         return $mapping;
+    }
+
+    /**
+     * Returns the base URL of the SoloSearch panel (suite) - not suite-search's widget host
+     * configured above (Widget Script URL is a different service). Used by SoloSearchClient to
+     * build the reindex request URL. Empty by default; no default value is guessed since no
+     * production URL has been decided for suite yet (unlike widget/script_url).
+     *
+     * @param int|null $storeId
+     * @return string
+     */
+    public function getApiUrl($storeId = null)
+    {
+        return (string) $this->scopeConfig->getValue(
+            self::XML_PATH_API_URL,
+            \Magento\Store\Model\ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
     }
 
     /**

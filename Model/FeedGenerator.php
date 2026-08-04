@@ -82,6 +82,11 @@ class FeedGenerator
     private $config;
 
     /**
+     * @var \Bydn\SoloSearch\Model\SoloSearchClient
+     */
+    private $soloSearchClient;
+
+    /**
      * Store view id for the current generate() call.
      *
      * @var int
@@ -128,6 +133,7 @@ class FeedGenerator
      * @param \Magento\Catalog\Model\Product\Visibility $productVisibility
      * @param \Psr\Log\LoggerInterface $logger
      * @param \Bydn\SoloSearch\Helper\Config $config
+     * @param \Bydn\SoloSearch\Model\SoloSearchClient $soloSearchClient
      */
     public function __construct(
         \Magento\Framework\Filesystem $filesystem,
@@ -139,7 +145,8 @@ class FeedGenerator
         \Magento\CatalogInventory\Api\StockConfigurationInterface $stockConfiguration,
         \Magento\Catalog\Model\Product\Visibility $productVisibility,
         \Psr\Log\LoggerInterface $logger,
-        \Bydn\SoloSearch\Helper\Config $config
+        \Bydn\SoloSearch\Helper\Config $config,
+        \Bydn\SoloSearch\Model\SoloSearchClient $soloSearchClient
     ) {
         $this->filesystem = $filesystem;
         $this->moduleManager = $moduleManager;
@@ -151,6 +158,7 @@ class FeedGenerator
         $this->productVisibility = $productVisibility;
         $this->logger = $logger;
         $this->config = $config;
+        $this->soloSearchClient = $soloSearchClient;
     }
 
     /**
@@ -196,7 +204,13 @@ class FeedGenerator
     }
 
     /**
-     * Generates the feed for a single store view, or skips (and logs) it if disabled
+     * Generates the feed for a single store view, or skips (and logs) it if disabled. Notifies
+     * SoloSearch to reindex afterwards (best-effort - see SoloSearchClient::requestReindex()).
+     *
+     * Deliberately not called from generate() itself: SmokeTestCommand calls generate() directly,
+     * many times per run, against scratch paths and SKU-restricted content - none of that is real
+     * feed content SoloSearch should be told to go fetch, and it would burn through the reindex
+     * endpoint's rate limit for no reason.
      *
      * @param int $storeId
      * @return void
@@ -210,6 +224,7 @@ class FeedGenerator
         }
 
         $this->generate($storeId);
+        $this->soloSearchClient->requestReindex($storeId);
     }
 
     /**

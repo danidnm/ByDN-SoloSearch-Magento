@@ -42,5 +42,10 @@
             <argument name="logger" xsi:type="object">Bydn\SoloSearch\Logger\Logger</argument>
         </arguments>
     </type>
+    <type name="Bydn\SoloSearch\Model\SoloSearchClient">
+        <arguments>
+            <argument name="logger" xsi:type="object">Bydn\SoloSearch\Logger\Logger</argument>
+        </arguments>
+    </type>
 
 </config>
