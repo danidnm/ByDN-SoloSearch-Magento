@@ -77,4 +77,14 @@ class Widget extends \Magento\Framework\View\Element\Template
     {
         return $this->config->getWidgetTemplateSetId();
     }
+
+    /**
+     * URL the add-to-cart listener posts to when the widget dispatches ss:atc.
+     *
+     * @return string
+     */
+    public function getCartAddUrl()
+    {
+        return $this->getUrl('checkout/cart/add');
+    }
 }

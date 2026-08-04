@@ -77,7 +77,7 @@
             </group>
             <group id="field_mapping" translate="label comment" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
                 <label>Field Mapping</label>
-                <comment>The fields id, sku, title, link, image, price, sale_price, availability, categories and currency are always added to the feed automatically and must not be added here</comment>
+                <comment>The fields id, sku, title, link, image, price, sale_price, availability, disable_add_to_cart, categories and currency are always added to the feed automatically and must not be added here</comment>
                 <field id="mapping" translate="label" sortOrder="1" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Fields</label>
                     <frontend_model>Bydn\SoloSearch\Block\Adminhtml\Form\Field\FieldMapping</frontend_model>

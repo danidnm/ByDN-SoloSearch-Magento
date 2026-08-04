@@ -13,12 +13,14 @@ class FeedGenerator
     // field_mapping - any field_mapping row using one of these names is ignored, since the
     // structural value always wins.
     const STRUCTURAL_FEED_FIELDS = [
-        'id', 'sku', 'title', 'link', 'image', 'price', 'sale_price', 'availability', 'categories', 'currency',
+        'id', 'sku', 'title', 'link', 'image', 'price', 'sale_price', 'availability', 'disable_add_to_cart', 'categories', 'currency',
     ];
 
     // Attribute codes needed to build the structural fields above, always selected on the product
-    // collection regardless of what field_mapping references.
-    const STRUCTURAL_ATTRIBUTE_CODES = ['name', 'image', 'price', 'special_price'];
+    // collection regardless of what field_mapping references. required_options is a native Magento
+    // system attribute (kept in sync by core whenever custom options are saved) - see
+    // hasDisabledAddToCart() for why it's read directly instead of loading the options collection.
+    const STRUCTURAL_ATTRIBUTE_CODES = ['name', 'image', 'price', 'special_price', 'required_options'];
 
     // Attribute codes that hold a media image path and therefore need to be resolved to a full URL.
     const IMAGE_ATTRIBUTE_CODES = ['image', 'small_image', 'thumbnail', 'swatch_image'];
@@ -418,8 +420,9 @@ class FeedGenerator
      * Builds the <item> node for a single product.
      *
      * The fields in STRUCTURAL_FEED_FIELDS (id, sku, title, link, image, price, sale_price,
-     * availability, categories, currency) are always computed directly from the product, never
-     * from field_mapping - a field_mapping row using one of these names is ignored below.
+     * availability, disable_add_to_cart, categories, currency) are always computed directly from
+     * the product, never from field_mapping - a field_mapping row using one of these names is
+     * ignored below.
      *
      * @param \DOMDocument $document
      * @param \Magento\Catalog\Model\Product $product
@@ -442,6 +445,7 @@ class FeedGenerator
         $this->appendNode($document, $item, 'price', $this->getProductAttributeValue($priceSourceProduct, 'price'), true, true);
         $this->appendNode($document, $item, 'sale_price', $this->getProductAttributeValue($priceSourceProduct, 'special_price'), true, true);
         $this->appendNode($document, $item, 'availability', $this->getProductStockValue($product), true, false);
+        $this->appendNode($document, $item, 'disable_add_to_cart', $this->hasDisabledAddToCart($product) ? '1' : '0', true, false);
         $this->appendNode($document, $item, 'categories', $this->getProductCategories($product), true, true);
         $this->appendNode($document, $item, 'currency', $this->currencyCode, true, true);
 
@@ -546,6 +550,44 @@ class FeedGenerator
     private function getProductStockValue(\Magento\Catalog\Model\Product $product)
     {
         return $product->getData($this->stockColumnName) ? 'in_stock' : 'out_of_stock';
+    }
+
+    /**
+     * Whether the product can NOT be added to cart with a plain product_id+qty=1 request and
+     * therefore needs its own product page instead (used by SoloSearch's widget to decide whether
+     * to show an add-to-cart button on a search result card):
+     * - configurable: always, a variant (super_attribute) must be picked first.
+     * - grouped: always. Magento's own hasRequiredOptions() reports false for these (there is no
+     *   "required option" to pick), but they still can't be added this way - they need
+     *   super_group[childId]=qty per child product instead, not a single product id.
+     * - required_options: native Magento product attribute, kept in sync by core whenever the
+     *   product's own "Customizable Options" include at least one required one. Read directly
+     *   instead of iterating $product->getOptions(), since that collection isn't reliably loaded
+     *   on a product coming from a plain collection (see STRUCTURAL_ATTRIBUTE_CODES).
+     * - bundle: needs its own check - bundle options aren't "custom options" (required_options
+     *   doesn't cover them), and getTypeInstance()->hasRequiredOptions() queries them directly by
+     *   product id/store, so it doesn't depend on anything being preloaded on $product either.
+     *
+     * @param \Magento\Catalog\Model\Product $product
+     * @return bool
+     */
+    private function hasDisabledAddToCart(\Magento\Catalog\Model\Product $product)
+    {
+        $typeId = $product->getTypeId();
+
+        if ($typeId === 'configurable' || $typeId === 'grouped') {
+            return true;
+        }
+
+        if ((bool) $product->getData('required_options')) {
+            return true;
+        }
+
+        if ($typeId === 'bundle') {
+            return (bool) $product->getTypeInstance()->hasRequiredOptions($product);
+        }
+
+        return false;
     }
 
     /**

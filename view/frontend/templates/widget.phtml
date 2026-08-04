@@ -9,3 +9,57 @@
     <?php if ($block->getLocale() !== ''): ?>data-locale="<?= $block->escapeHtmlAttr($block->getLocale()) ?>"<?php endif; ?>
     <?php if ($block->getTemplateSetId() !== ''): ?>data-template="<?= $block->escapeHtmlAttr($block->getTemplateSetId()) ?>"<?php endif; ?>
 ></script>
+<script>
+(function () {
+    // form_key read straight from the cookie Magento sets on every visit - not window.formKey/
+    // window.customerData, which are theme-specific globals some themes expose and others don't.
+    // Keeps this template working on any storefront theme, not just the one it was ported from.
+    function getFormKey() {
+        var match = document.cookie.match(/(?:^|; )form_key=([^;]*)/);
+        return match ? decodeURIComponent(match[1]) : '';
+    }
+
+    // Fired by widget.js when the user clicks a [data-ss-atc] button on a search result card.
+    // See resources/js/widget/cart.js in suite-search for the dispatch side (event.detail has
+    // id/title/price/sale_price - only id is needed for the actual cart add).
+    document.addEventListener('ss:atc', function (event) {
+        var detail = event.detail || {};
+        var productId = detail.id;
+
+        if (!productId) { return; }
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '<?= /* @noEscape */ $block->escapeJs($block->getCartAddUrl()) ?>', true);
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState !== XMLHttpRequest.DONE) { return; }
+
+            var success = xhr.status >= 200 && xhr.status < 400;
+
+            // Refreshes the minicart count/content, same as any other add-to-cart on the page.
+            // Assumes RequireJS (require()) is available, same as any standard Magento storefront
+            // theme - a tenant on a theme that removed it is responsible for adapting this template.
+            if (success) {
+                require(['Magento_Customer/js/customer-data'], function (customerData) {
+                    customerData.reload(['cart'], true);
+                });
+            }
+
+            // widget.js clears the button's loading state (and re-enables it) on this event -
+            // see resources/js/widget/cart.js setupAtcDoneListener() - regardless of success, so a
+            // failed add never leaves the button stuck.
+            document.dispatchEvent(new CustomEvent('ss:atc:done', {
+                detail: { id: productId, success: success }
+            }));
+        };
+
+        var params = new URLSearchParams();
+        params.append('product', productId);
+        params.append('qty', '1');
+        params.append('form_key', getFormKey());
+        xhr.send(params.toString());
+    });
+})();
+</script>

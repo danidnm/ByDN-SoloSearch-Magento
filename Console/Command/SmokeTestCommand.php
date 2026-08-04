@@ -235,6 +235,7 @@ class SmokeTestCommand extends \Symfony\Component\Console\Command\Command
                     $this->testOutOfStock($output, $storeId),
                     $this->testIncludeConfigurableProducts($output, $storeId),
                     $this->testOtherProductTypeToggles($output, $storeId),
+                    $this->testDisableAddToCartField($output, $storeId),
                     $this->testConfigurablePriceMode($output, $storeId),
                     $this->testConfigurablePriceModeFallback($output, $storeId),
                     $this->testBundlePrice($output, $storeId),
@@ -507,6 +508,71 @@ class SmokeTestCommand extends \Symfony\Component\Console\Command\Command
 
         if (!$anyTypeFound) {
             return $this->skip($output, $label, 'no bundle/virtual/downloadable/grouped product found in the catalog to test with');
+        }
+
+        return $this->report($output, $label, $allOk, implode(' ', $parts));
+    }
+
+    /**
+     * disable_add_to_cart is structural (not part of field_mapping) and must correctly flag
+     * products that can't be added to cart with a plain product_id+qty=1 request - see
+     * FeedGenerator::hasDisabledAddToCart(). configurable and grouped are always '1' regardless of
+     * catalog data; bundle depends on whether it happens to have a required option, so that one
+     * only checks the value comes back as a valid '0'/'1' rather than asserting which one.
+     *
+     * @param \Symfony\Component\Console\Output\OutputInterface $output
+     * @param int $storeId
+     * @return string
+     */
+    private function testDisableAddToCartField(\Symfony\Component\Console\Output\OutputInterface $output, $storeId)
+    {
+        $label = 'disable_add_to_cart field';
+
+        $expectedByType = [
+            'configurable' => '1',
+            'grouped' => '1',
+            'simple' => '0',
+        ];
+
+        $allOk = true;
+        $parts = [];
+        $anyFound = false;
+
+        foreach ($expectedByType as $typeId => $expected) {
+            $product = $this->findOneProduct($storeId, function (ProductCollection $collection) use ($typeId) {
+                $collection->addFieldToFilter('type_id', $typeId);
+                $collection->addAttributeToFilter('status', Status::STATUS_ENABLED);
+            });
+
+            if (!$product) {
+                $parts[] = "{$typeId}=>skip (none in catalog)";
+                continue;
+            }
+
+            $anyFound = true;
+            $value = $this->extractFieldValue($this->generateFeedContent($storeId, [$product->getSku()]), 'disable_add_to_cart');
+            $ok = $value === $expected;
+            $allOk = $allOk && $ok;
+            $parts[] = "{$typeId}=>{$value}(" . ($ok ? 'ok' : "FAIL, expected {$expected}") . ')';
+        }
+
+        $bundle = $this->findOneProduct($storeId, function (ProductCollection $collection) {
+            $collection->addFieldToFilter('type_id', 'bundle');
+            $collection->addAttributeToFilter('status', Status::STATUS_ENABLED);
+        });
+
+        if ($bundle) {
+            $anyFound = true;
+            $value = $this->extractFieldValue($this->generateFeedContent($storeId, [$bundle->getSku()]), 'disable_add_to_cart');
+            $ok = in_array($value, ['0', '1'], true);
+            $allOk = $allOk && $ok;
+            $parts[] = 'bundle=>' . $value . '(' . ($ok ? 'ok' : 'FAIL, expected 0 or 1') . ')';
+        } else {
+            $parts[] = 'bundle=>skip (none in catalog)';
+        }
+
+        if (!$anyFound) {
+            return $this->skip($output, $label, 'no configurable/grouped/simple/bundle product found in the catalog to test with');
         }
 
         return $this->report($output, $label, $allOk, implode(' ', $parts));
