@@ -231,10 +231,10 @@ class FeedGenerator
      * Generates the feed for a single store view, or skips (and logs) it if disabled. Notifies
      * SoloSearch to reindex afterwards (best-effort - see SoloSearchClient::requestReindex()).
      *
-     * Deliberately not called from generate() itself: SmokeTestCommand calls generate() directly,
-     * many times per run, against scratch paths and SKU-restricted content - none of that is real
-     * feed content SoloSearch should be told to go fetch, and it would burn through the reindex
-     * endpoint's rate limit for no reason.
+     * Deliberately not called from generate() itself: that method also accepts a $skus restriction
+     * for targeted/manual testing, and content generated that way is never what SoloSearch's own
+     * feed path serves - notifying it to reindex from there would be pointless at best, and would
+     * burn through the reindex endpoint's rate limit at worst.
      *
      * @param int $storeId
      * @return void
@@ -255,9 +255,9 @@ class FeedGenerator
      * Generates the SoloSearch product feed for a single store view.
      *
      * $skus optionally restricts the feed to a specific set of SKUs instead of the whole catalog.
-     * Not used in production (Cron/Console always generate the full feed) - it exists so
-     * Console\Command\SmokeTestCommand can regenerate against a couple of known products instead
-     * of the entire catalog, which is what makes the smoke test fast.
+     * Not used in production (Cron/Console always generate the full feed) - kept for targeted
+     * testing tools (manual or automated) to regenerate against a couple of known products
+     * instead of the entire catalog.
      *
      * @param int $storeId
      * @param array $skus

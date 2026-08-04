@@ -6,7 +6,6 @@
         <arguments>
             <argument name="commands" xsi:type="array">
                 <item name="solosearchFeedGenerate" xsi:type="object">Bydn\SoloSearch\Console\Command\GenerateFeedCommand</item>
-                <item name="solosearchFeedSmokeTest" xsi:type="object">Bydn\SoloSearch\Console\Command\SmokeTestCommand</item>
             </argument>
         </arguments>
     </type>

@@ -1,4 +1,4 @@
-# Bydn_SoloSearch
+# SoloSearch Official Module
 
 Magento 2 module for [SoloSearch](https://solosearch.app) — an instant search engine and management panel for ecommerce, built as an affordable alternative to costlier options like Doofinder.
 
