@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
+    <table name="bydn_solosearch_product_queue" resource="default" engine="innodb" comment="SoloSearch pending product changes queue">
+        <column xsi:type="int" name="entity_id" unsigned="true" nullable="false" identity="true" comment="Entity ID"/>
+        <column xsi:type="int" name="product_id" unsigned="true" nullable="false" comment="Product entity ID"/>
+        <column xsi:type="smallint" name="store_id" unsigned="true" nullable="false" comment="Store ID"/>
+        <column xsi:type="varchar" name="operation" nullable="false" length="10" default="update" comment="Operation: update or delete"/>
+        <column xsi:type="varchar" name="status" nullable="false" length="10" default="pending" comment="Status: pending or error"/>
+        <column xsi:type="smallint" name="attempts" unsigned="true" nullable="false" default="0" comment="Number of failed send attempts"/>
+        <column xsi:type="text" name="result" nullable="true" comment="Last error message, if any"/>
+        <column xsi:type="timestamp" name="created_at" nullable="false" default="CURRENT_TIMESTAMP" comment="Created At"/>
+        <column xsi:type="timestamp" name="updated_at" nullable="false" default="CURRENT_TIMESTAMP" on_update="true" comment="Updated At"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="entity_id"/>
+        </constraint>
+        <constraint xsi:type="unique" referenceId="BYDN_SOLOSEARCH_PRODUCT_QUEUE_PRODUCT_ID_STORE_ID">
+            <column name="product_id"/>
+            <column name="store_id"/>
+        </constraint>
+        <index referenceId="BYDN_SOLOSEARCH_PRODUCT_QUEUE_STATUS" indexType="btree">
+            <column name="status"/>
+        </index>
+    </table>
+</schema>
