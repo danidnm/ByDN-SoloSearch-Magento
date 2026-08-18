@@ -8,4 +8,9 @@
     <event name="catalog_product_delete_after">
         <observer name="bydn_solosearch_product_delete_after" instance="Bydn\SoloSearch\Observer\ProductDeleteAfter"/>
     </event>
+    <!-- Admin grid "Update Attributes" mass action - a bulk SQL update, not a per-product save,
+         so it needs its own observer (see Observer\ProductAttributeMassUpdate docblock). -->
+    <event name="catalog_product_attribute_update_before">
+        <observer name="bydn_solosearch_product_attribute_mass_update" instance="Bydn\SoloSearch\Observer\ProductAttributeMassUpdate"/>
+    </event>
 </config>

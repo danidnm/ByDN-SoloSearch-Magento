@@ -357,6 +357,26 @@ class FeedGenerator
     }
 
     /**
+     * Whether a single product currently qualifies for the feed on status/visibility grounds -
+     * the same status/visibility criteria getProductCollection() applies as SQL filters above,
+     * evaluated in PHP against an already-loaded product instead. Used outside a full feed
+     * generation (ProductChangeNotifier/observers) to tell whether a status or visibility change
+     * should result in the product being updated in the index or removed from it entirely.
+     *
+     * Only covers status/visibility, not every other inclusion rule getProductCollection() applies
+     * (product type, configurable/bundle/virtual/downloadable/grouped toggles) - those don't change
+     * on an existing product's save the way status/visibility routinely do.
+     *
+     * @param \Magento\Catalog\Model\Product $product
+     * @return bool
+     */
+    public function isProductVisibleInFeed(\Magento\Catalog\Model\Product $product)
+    {
+        return (int) $product->getStatus() === (int) Status::STATUS_ENABLED
+            && in_array((int) $product->getVisibility(), $this->productVisibility->getVisibleInSearchIds(), true);
+    }
+
+    /**
      * Joins in-stock data into the product collection, resolving it per-store via MSI (multiple
      * stocks can exist, each store view can be assigned a different one, so stock can genuinely
      * differ between the feeds of two store views) when available, falling back to the legacy

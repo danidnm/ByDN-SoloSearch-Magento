@@ -23,6 +23,13 @@ class ProductChangeNotifier implements ProductChangeNotifierInterface
      * exactly what we're watching for - they're just never something FeedGenerator needs to
      * additionally ask the collection to select.
      *
+     * `status`/`visibility` are also included, even though neither appears in the feed itself -
+     * they control whether the product qualifies for the feed at all (see
+     * FeedGenerator::getProductCollection()'s filters). A change to either is still handled as a
+     * normal "changed" signal here; ProductSaveAfter is the one that inspects the product's
+     * current status/visibility (via FeedGenerator::isProductVisibleInFeed()) to decide whether
+     * that means an update or a removal from the index.
+     *
      * Deliberately excludes two known gaps, left for later:
      *  - stock/availability, which isn't a product attribute at all (separate stock/MSI entity,
      *    never touched by catalog_product_save_after);
@@ -30,7 +37,7 @@ class ProductChangeNotifier implements ProductChangeNotifierInterface
      *    (the save event fires on the child, not the parent that appears in the feed - the parent
      *    would need to be resolved and queued separately).
      */
-    const EXTRA_WATCHED_ATTRIBUTE_CODES = ['sku', 'url_key', 'category_ids', 'type_id'];
+    const EXTRA_WATCHED_ATTRIBUTE_CODES = ['sku', 'url_key', 'category_ids', 'type_id', 'status', 'visibility'];
 
     /**
      * @var Config

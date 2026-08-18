@@ -66,5 +66,10 @@
             <argument name="logger" xsi:type="object">Bydn\SoloSearch\Logger\Logger</argument>
         </arguments>
     </type>
+    <type name="Bydn\SoloSearch\Observer\ProductAttributeMassUpdate">
+        <arguments>
+            <argument name="logger" xsi:type="object">Bydn\SoloSearch\Logger\Logger</argument>
+        </arguments>
+    </type>
 
 </config>
