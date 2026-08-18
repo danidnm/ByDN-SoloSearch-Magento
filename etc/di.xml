@@ -4,6 +4,7 @@
     <!-- Product queue (pending single-product updates/deletes for the real-time sync) -->
     <preference for="Bydn\SoloSearch\Api\Data\ProductQueueItemInterface" type="Bydn\SoloSearch\Model\ProductQueueItem"/>
     <preference for="Bydn\SoloSearch\Api\ProductQueueItemRepositoryInterface" type="Bydn\SoloSearch\Model\ProductQueueItemRepository"/>
+    <preference for="Bydn\SoloSearch\Api\ProductChangeNotifierInterface" type="Bydn\SoloSearch\Model\ProductChangeNotifier"/>
 
     <!-- Console command -->
     <type name="Magento\Framework\Console\CommandListInterface">
@@ -46,6 +47,21 @@
         </arguments>
     </type>
     <type name="Bydn\SoloSearch\Model\SoloSearchClient">
+        <arguments>
+            <argument name="logger" xsi:type="object">Bydn\SoloSearch\Logger\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Bydn\SoloSearch\Model\ProductChangeNotifier">
+        <arguments>
+            <argument name="logger" xsi:type="object">Bydn\SoloSearch\Logger\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Bydn\SoloSearch\Observer\ProductSaveAfter">
+        <arguments>
+            <argument name="logger" xsi:type="object">Bydn\SoloSearch\Logger\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Bydn\SoloSearch\Observer\ProductDeleteAfter">
         <arguments>
             <argument name="logger" xsi:type="object">Bydn\SoloSearch\Logger\Logger</argument>
         </arguments>

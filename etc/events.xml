@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+    <!-- Global scope (not adminhtml/etc) - must also catch programmatic saves from CLI/API/custom
+         importers, not just admin panel edits. -->
+    <event name="catalog_product_save_after">
+        <observer name="bydn_solosearch_product_save_after" instance="Bydn\SoloSearch\Observer\ProductSaveAfter"/>
+    </event>
+    <event name="catalog_product_delete_after">
+        <observer name="bydn_solosearch_product_delete_after" instance="Bydn\SoloSearch\Observer\ProductDeleteAfter"/>
+    </event>
+</config>
