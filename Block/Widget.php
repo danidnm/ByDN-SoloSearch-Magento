@@ -24,14 +24,19 @@ class Widget extends \Magento\Framework\View\Element\Template
     }
 
     /**
-     * Renders nothing when the widget embed is disabled, or when the Search Engine ID hasn't
-     * been configured yet - a half-configured store must not emit a broken script tag.
+     * Renders nothing when SoloSearch is disabled altogether (General > Enable), when the widget
+     * embed specifically is disabled, or when the Search Engine ID hasn't been configured yet - a
+     * half-configured store must not emit a broken script tag.
      *
      * {@inheritdoc}
      */
     protected function _toHtml()
     {
-        if (!$this->config->isWidgetEnabled() || $this->getSearchEngineId() === '' || $this->getScriptUrl() === '') {
+        if (!$this->config->isEnabled()
+            || !$this->config->isWidgetEnabled()
+            || $this->getSearchEngineId() === ''
+            || $this->getScriptUrl() === ''
+        ) {
             return '';
         }
 
