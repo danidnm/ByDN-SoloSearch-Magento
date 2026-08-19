@@ -10,24 +10,24 @@ use Bydn\SoloSearch\Helper\Config;
 class ProductChangeNotifier implements ProductChangeNotifierInterface
 {
     /**
-     * Attribute codes behind the structural feed fields (see FeedGenerator::buildItemNode()) that
-     * can realistically be watched via $product->dataHasChangedFor() on the product itself.
+     * Attribute codes behind the structural feed fields (see ProductFieldsBuilder::buildFields())
+     * that can realistically be watched via $product->dataHasChangedFor() on the product itself.
      *
-     * Built on top of FeedGenerator::STRUCTURAL_ATTRIBUTE_CODES rather than duplicating it - that
-     * list feeds $collection->addAttributeToSelect() (see FeedGenerator::getProductCollection()),
+     * Built on top of ProductFieldsBuilder::STRUCTURAL_ATTRIBUTE_CODES rather than duplicating it -
+     * that list feeds $collection->addAttributeToSelect() (see ProductFieldsBuilder::getCollection()),
      * so it deliberately excludes codes loaded through other collection methods instead: `sku`/
      * `type_id` (native columns, always present, never need explicit selecting) and `url_key`/
      * `category_ids` (loaded via addUrlRewrite()/addCategoryIds(), not addAttributeToSelect() -
      * category_ids in particular isn't a normal EAV attribute, adding it there could behave
      * unexpectedly). Those four still need to be in THIS list, since their value changing is
-     * exactly what we're watching for - they're just never something FeedGenerator needs to
+     * exactly what we're watching for - they're just never something ProductFieldsBuilder needs to
      * additionally ask the collection to select.
      *
      * `status`/`visibility` are also included, even though neither appears in the feed itself -
      * they control whether the product qualifies for the feed at all (see
-     * FeedGenerator::getProductCollection()'s filters). A change to either is still handled as a
+     * ProductFieldsBuilder::getCollection()'s filters). A change to either is still handled as a
      * normal "changed" signal here; ProductSaveAfter is the one that inspects the product's
-     * current status/visibility (via FeedGenerator::isProductVisibleInFeed()) to decide whether
+     * current status/visibility (via ProductFieldsBuilder::isVisibleInFeed()) to decide whether
      * that means an update or a removal from the index.
      *
      * Deliberately excludes two known gaps, left for later:
@@ -116,7 +116,7 @@ class ProductChangeNotifier implements ProductChangeNotifierInterface
         $fieldMappingCodes = array_filter(array_values($this->config->getFieldMapping($storeId)));
 
         return array_values(array_unique(array_merge(
-            FeedGenerator::STRUCTURAL_ATTRIBUTE_CODES,
+            ProductFieldsBuilder::STRUCTURAL_ATTRIBUTE_CODES,
             self::EXTRA_WATCHED_ATTRIBUTE_CODES,
             $fieldMappingCodes
         )));

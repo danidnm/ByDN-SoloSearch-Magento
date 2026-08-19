@@ -46,7 +46,7 @@ interface ProductChangeNotifierInterface
 
     /**
      * Every attribute code whose value ends up in the SoloSearch feed for this store: the
-     * structural fields (see FeedGenerator::STRUCTURAL_ATTRIBUTE_CODES and
+     * structural fields (see Model\ProductFieldsBuilder::STRUCTURAL_ATTRIBUTE_CODES and
      * Model\ProductChangeNotifier::EXTRA_WATCHED_ATTRIBUTE_CODES) plus whatever is currently
      * configured in Field Mapping.
      *

@@ -6,7 +6,7 @@ class AttributeSelect extends \Magento\Framework\View\Element\Html\Select
 {
     // Static product columns (not EAV attributes, so they never appear in the attribute
     // collection below) that are still safely readable via Product::getData() in
-    // FeedGenerator::getProductAttributeValue() and are useful enough to offer here.
+    // ProductFieldsBuilder::getProductAttributeValue() and are useful enough to offer here.
     const EXTRA_STATIC_OPTIONS = [
         ['value' => 'type_id', 'label' => 'Product Type (type_id)'],
     ];
@@ -67,14 +67,14 @@ class AttributeSelect extends \Magento\Framework\View\Element\Html\Select
     /**
      * Builds the option list from EXTRA_STATIC_OPTIONS plus every catalog product attribute,
      * excluding those already used for a structural feed field (see
-     * FeedGenerator::STRUCTURAL_FEED_FIELDS) - mapping them again here would have no effect.
+     * ProductFieldsBuilder::STRUCTURAL_FEED_FIELDS) - mapping them again here would have no effect.
      *
      * @return array
      */
     private function getSourceOptions()
     {
         $attributes = $this->attributeCollectionFactory->create();
-        $reservedAttributeCodes = array_merge(['sku'], \Bydn\SoloSearch\Model\FeedGenerator::STRUCTURAL_ATTRIBUTE_CODES);
+        $reservedAttributeCodes = array_merge(['sku'], \Bydn\SoloSearch\Model\ProductFieldsBuilder::STRUCTURAL_ATTRIBUTE_CODES);
 
         $options = self::EXTRA_STATIC_OPTIONS;
 

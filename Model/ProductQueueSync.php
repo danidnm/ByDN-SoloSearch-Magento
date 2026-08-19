@@ -11,6 +11,10 @@ use Bydn\SoloSearch\Helper\Config;
  * single-product API - the real-time counterpart to FeedGenerator's scheduled full Feed Reindex.
  * Called by Cron\SyncProductQueue and the solosearch:product-queue:sync console command, both kept
  * thin on purpose - this class owns the actual logic.
+ *
+ * Depends on ProductFieldsBuilder, not FeedGenerator - the two are siblings, both consuming the
+ * same field-building logic for their own different purpose (a whole-catalogue XML file here vs a
+ * per-product JSON payload there), neither depends on the other.
  */
 class ProductQueueSync
 {
@@ -39,9 +43,9 @@ class ProductQueueSync
     private $queueRepository;
 
     /**
-     * @var FeedGenerator
+     * @var ProductFieldsBuilder
      */
-    private $feedGenerator;
+    private $fieldsBuilder;
 
     /**
      * @var SoloSearchClient
@@ -57,7 +61,7 @@ class ProductQueueSync
      * @param \Magento\Store\Model\StoreManagerInterface $storeManager
      * @param Config $config
      * @param ProductQueueItemRepositoryInterface $queueRepository
-     * @param FeedGenerator $feedGenerator
+     * @param ProductFieldsBuilder $fieldsBuilder
      * @param SoloSearchClient $soloSearchClient
      * @param \Psr\Log\LoggerInterface $logger
      */
@@ -65,14 +69,14 @@ class ProductQueueSync
         \Magento\Store\Model\StoreManagerInterface $storeManager,
         Config $config,
         ProductQueueItemRepositoryInterface $queueRepository,
-        FeedGenerator $feedGenerator,
+        ProductFieldsBuilder $fieldsBuilder,
         SoloSearchClient $soloSearchClient,
         \Psr\Log\LoggerInterface $logger
     ) {
         $this->storeManager = $storeManager;
         $this->config = $config;
         $this->queueRepository = $queueRepository;
-        $this->feedGenerator = $feedGenerator;
+        $this->fieldsBuilder = $fieldsBuilder;
         $this->soloSearchClient = $soloSearchClient;
         $this->logger = $logger;
     }
@@ -120,7 +124,7 @@ class ProductQueueSync
     /**
      * Sends up to BATCH_SIZE pending items for a single store: resolves updates to their current
      * product data (a product no longer matching the feed's own inclusion filters is treated as a
-     * delete instead - see FeedGenerator::buildFieldsForProducts()), sends the update batch in one
+     * delete instead - see ProductFieldsBuilder::buildFieldsForProducts()), sends the update batch in one
      * call, and sends deletes one by one (no batch-delete endpoint exists yet).
      *
      * @param int $storeId
@@ -174,7 +178,7 @@ class ProductQueueSync
             return $item->getProductId();
         }, $items);
 
-        $fieldsByProductId = $this->feedGenerator->buildFieldsForProducts($storeId, $productIds);
+        $fieldsByProductId = $this->fieldsBuilder->buildFieldsForProducts($storeId, $productIds);
 
         $itemsByProductId = [];
         $payload = [];

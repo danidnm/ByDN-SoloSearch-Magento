@@ -5,7 +5,7 @@ namespace Bydn\SoloSearch\Model\Source;
 class ConfigurablePriceMode implements \Magento\Framework\Option\ArrayInterface
 {
     // Cheapest enabled child's price - falls back to the cheapest child of any status when the
-    // configurable has no enabled child at all (see FeedGenerator::resolvePriceSourceProduct()).
+    // configurable has no enabled child at all (see ProductFieldsBuilder::resolvePriceSourceProduct()).
     const CHEAPEST_CHILD = 'cheapest_child';
 
     // Cheapest child's price regardless of status (enabled or disabled).

@@ -3,7 +3,7 @@
 namespace Bydn\SoloSearch\Observer;
 
 use Bydn\SoloSearch\Api\ProductChangeNotifierInterface;
-use Bydn\SoloSearch\Model\FeedGenerator;
+use Bydn\SoloSearch\Model\ProductFieldsBuilder;
 use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
 
@@ -12,7 +12,7 @@ use Magento\Framework\Event\ObserverInterface;
  * information is available) and hands off to ProductChangeNotifier, which owns every decision
  * about whether it's relevant and what to do about it. The one exception is status/visibility:
  * whether that means an update or a removal from the index depends on the product's current
- * eligibility (FeedGenerator::isProductVisibleInFeed()), which only this observer can evaluate -
+ * eligibility (ProductFieldsBuilder::isVisibleInFeed()), which only this observer can evaluate -
  * it's the only place with the loaded Product object.
  */
 class ProductSaveAfter implements ObserverInterface
@@ -23,9 +23,9 @@ class ProductSaveAfter implements ObserverInterface
     private $notifier;
 
     /**
-     * @var FeedGenerator
+     * @var ProductFieldsBuilder
      */
-    private $feedGenerator;
+    private $fieldsBuilder;
 
     /**
      * @var \Psr\Log\LoggerInterface
@@ -34,16 +34,16 @@ class ProductSaveAfter implements ObserverInterface
 
     /**
      * @param ProductChangeNotifierInterface $notifier
-     * @param FeedGenerator $feedGenerator
+     * @param ProductFieldsBuilder $fieldsBuilder
      * @param \Psr\Log\LoggerInterface $logger
      */
     public function __construct(
         ProductChangeNotifierInterface $notifier,
-        FeedGenerator $feedGenerator,
+        ProductFieldsBuilder $fieldsBuilder,
         \Psr\Log\LoggerInterface $logger
     ) {
         $this->notifier = $notifier;
-        $this->feedGenerator = $feedGenerator;
+        $this->fieldsBuilder = $fieldsBuilder;
         $this->logger = $logger;
     }
 
@@ -80,7 +80,7 @@ class ProductSaveAfter implements ObserverInterface
                 $touchesEligibility = in_array('status', $changedCodes, true)
                     || in_array('visibility', $changedCodes, true);
 
-                if ($touchesEligibility && !$this->feedGenerator->isProductVisibleInFeed($product)) {
+                if ($touchesEligibility && !$this->fieldsBuilder->isVisibleInFeed($product)) {
                     // No longer enabled and/or visible in search - remove it instead of sending
                     // stale data as an "update". Whatever else changed in this same save is moot,
                     // the product shouldn't be in the index at all right now.
