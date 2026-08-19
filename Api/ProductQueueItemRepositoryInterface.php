@@ -21,15 +21,17 @@ interface ProductQueueItemRepositoryInterface
     public function getById($entityId);
 
     /**
-     * Finds the queue row for a given product+store, if one already exists (pending or error).
-     * Returns null instead of throwing - this is a lookup by natural key ('does a row already
-     * exist for this product on this store'), not a hard "must exist" like getById().
+     * Finds the still-unprocessed (STATUS_PENDING) queue row for a given product+store, if one
+     * exists. Deliberately ignores STATUS_SUCCESS/STATUS_ERROR rows - those are history, never
+     * reused for a new change (see ProductChangeNotifier::enqueue()). Returns null instead of
+     * throwing - this is a lookup by natural key ('is there already unsent work queued for this
+     * product on this store'), not a hard "must exist" like getById().
      *
      * @param int $productId
      * @param int $storeId
      * @return ProductQueueItemInterface|null
      */
-    public function getByProductAndStore($productId, $storeId);
+    public function findPendingItem($productId, $storeId);
 
     /**
      * Oldest-first, up to $limit pending items for a single store - what the sync cron pulls per
@@ -48,6 +50,16 @@ interface ProductQueueItemRepositoryInterface
      * @throws \Magento\Framework\Exception\CouldNotDeleteException
      */
     public function delete(ProductQueueItemInterface $item);
+
+    /**
+     * Removes finished (STATUS_SUCCESS/STATUS_ERROR) rows last updated before $before - used by
+     * the history retention cleanup (see Model\ProductQueueCleaner). Deliberately never touches
+     * STATUS_PENDING rows regardless of age - those are real unsent work, not history.
+     *
+     * @param \DateTimeInterface $before
+     * @return int Number of rows removed
+     */
+    public function deleteFinishedOlderThan(\DateTimeInterface $before);
 
     /**
      * @param int $entityId

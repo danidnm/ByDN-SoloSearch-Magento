@@ -26,6 +26,8 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
 
     const XML_PATH_FIELD_MAPPING = 'solosearch/field_mapping/mapping';
 
+    const XML_PATH_PRODUCT_QUEUE_RETENTION_DAYS = 'solosearch/product_queue/retention_days';
+
     const XML_PATH_API_URL = 'solosearch/general/api_url';
 
     const XML_PATH_API_TOKEN = 'solosearch/general/api_token';
@@ -46,6 +48,9 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
     // public docroot), not the bare media/ at the Magento root, so the default is downloadable
     // over HTTP without any extra web server configuration.
     const DEFAULT_FEED_PATH_TEMPLATE = 'pub/media/feeds/solosearch/%s/solosearch.xml';
+
+    // Safety net used when the product_queue/retention_days config value is empty/not configured.
+    const DEFAULT_PRODUCT_QUEUE_RETENTION_DAYS = 7;
 
     // Safety net used when the field_mapping/mapping config value cannot be read or is empty.
     // Kept in sync with config.xml's default - id/title/image/price/sale_price/availability/
@@ -297,6 +302,26 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
         }
 
         return $mapping;
+    }
+
+    /**
+     * Returns how many days finished (STATUS_SUCCESS/STATUS_ERROR) product queue entries are kept
+     * before ProductQueueCleaner removes them. Falls back to
+     * DEFAULT_PRODUCT_QUEUE_RETENTION_DAYS when not configured. Default scope only - there is a
+     * single shared retention window for every store view (see etc/adminhtml/system.xml).
+     *
+     * @param int|null $storeId
+     * @return int
+     */
+    public function getProductQueueRetentionDays($storeId = null)
+    {
+        $value = $this->scopeConfig->getValue(
+            self::XML_PATH_PRODUCT_QUEUE_RETENTION_DAYS,
+            \Magento\Store\Model\ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
+
+        return $value !== null && $value !== '' ? (int) $value : self::DEFAULT_PRODUCT_QUEUE_RETENTION_DAYS;
     }
 
     /**

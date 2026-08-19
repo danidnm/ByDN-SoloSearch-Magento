@@ -5,25 +5,25 @@ namespace Bydn\SoloSearch\Cron;
 class GenerateFeed
 {
     /**
-     * @var \Psr\Log\LoggerInterface
-     */
-    private $logger;
-
-    /**
      * @var \Bydn\SoloSearch\Model\FeedGenerator
      */
     private $feedGenerator;
 
     /**
-     * @param \Psr\Log\LoggerInterface $logger
+     * @var \Psr\Log\LoggerInterface
+     */
+    private $logger;
+
+    /**
      * @param \Bydn\SoloSearch\Model\FeedGenerator $feedGenerator
+     * @param \Psr\Log\LoggerInterface $logger
      */
     public function __construct(
-        \Psr\Log\LoggerInterface $logger,
-        \Bydn\SoloSearch\Model\FeedGenerator $feedGenerator
+        \Bydn\SoloSearch\Model\FeedGenerator $feedGenerator,
+        \Psr\Log\LoggerInterface $logger
     ) {
-        $this->logger = $logger;
         $this->feedGenerator = $feedGenerator;
+        $this->logger = $logger;
     }
 
     /**

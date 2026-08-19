@@ -6,7 +6,7 @@
     <preference for="Bydn\SoloSearch\Api\ProductQueueItemRepositoryInterface" type="Bydn\SoloSearch\Model\ProductQueueItemRepository"/>
     <preference for="Bydn\SoloSearch\Api\ProductChangeNotifierInterface" type="Bydn\SoloSearch\Model\ProductChangeNotifier"/>
 
-    <!-- Console command -->
+    <!-- Console commands -->
     <type name="Magento\Framework\Console\CommandListInterface">
         <arguments>
             <argument name="commands" xsi:type="array">
@@ -37,7 +37,17 @@
             <argument name="logger" xsi:type="object">Bydn\SoloSearch\Logger\Logger</argument>
         </arguments>
     </type>
+    <type name="Bydn\SoloSearch\Console\Command\SyncProductQueueCommand">
+        <arguments>
+            <argument name="logger" xsi:type="object">Bydn\SoloSearch\Logger\Logger</argument>
+        </arguments>
+    </type>
     <type name="Bydn\SoloSearch\Cron\GenerateFeed">
+        <arguments>
+            <argument name="logger" xsi:type="object">Bydn\SoloSearch\Logger\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Bydn\SoloSearch\Cron\SyncProductQueue">
         <arguments>
             <argument name="logger" xsi:type="object">Bydn\SoloSearch\Logger\Logger</argument>
         </arguments>
@@ -47,12 +57,27 @@
             <argument name="logger" xsi:type="object">Bydn\SoloSearch\Logger\Logger</argument>
         </arguments>
     </type>
-    <type name="Bydn\SoloSearch\Model\SoloSearchClient">
+    <type name="Bydn\SoloSearch\Model\ProductChangeNotifier">
         <arguments>
             <argument name="logger" xsi:type="object">Bydn\SoloSearch\Logger\Logger</argument>
         </arguments>
     </type>
-    <type name="Bydn\SoloSearch\Model\ProductChangeNotifier">
+    <type name="Bydn\SoloSearch\Model\ProductQueueSync">
+        <arguments>
+            <argument name="logger" xsi:type="object">Bydn\SoloSearch\Logger\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Bydn\SoloSearch\Model\ProductQueueCleaner">
+        <arguments>
+            <argument name="logger" xsi:type="object">Bydn\SoloSearch\Logger\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Bydn\SoloSearch\Cron\CleanProductQueue">
+        <arguments>
+            <argument name="logger" xsi:type="object">Bydn\SoloSearch\Logger\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Bydn\SoloSearch\Model\SoloSearchClient">
         <arguments>
             <argument name="logger" xsi:type="object">Bydn\SoloSearch\Logger\Logger</argument>
         </arguments>
@@ -68,21 +93,6 @@
         </arguments>
     </type>
     <type name="Bydn\SoloSearch\Observer\ProductAttributeMassUpdate">
-        <arguments>
-            <argument name="logger" xsi:type="object">Bydn\SoloSearch\Logger\Logger</argument>
-        </arguments>
-    </type>
-    <type name="Bydn\SoloSearch\Model\ProductQueueSync">
-        <arguments>
-            <argument name="logger" xsi:type="object">Bydn\SoloSearch\Logger\Logger</argument>
-        </arguments>
-    </type>
-    <type name="Bydn\SoloSearch\Cron\SyncProductQueue">
-        <arguments>
-            <argument name="logger" xsi:type="object">Bydn\SoloSearch\Logger\Logger</argument>
-        </arguments>
-    </type>
-    <type name="Bydn\SoloSearch\Console\Command\SyncProductQueueCommand">
         <arguments>
             <argument name="logger" xsi:type="object">Bydn\SoloSearch\Logger\Logger</argument>
         </arguments>

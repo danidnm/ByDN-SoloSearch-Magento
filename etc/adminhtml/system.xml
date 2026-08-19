@@ -79,6 +79,14 @@
                     <comment>Relative to the Magento root, must not be absolute or contain "..". If empty, defaults to pub/media/feeds/solosearch/{store_code}/solosearch.xml (publicly downloadable)</comment>
                 </field>
             </group>
+            <group id="product_queue" translate="label" sortOrder="25" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Product Queue</label>
+                <field id="retention_days" translate="label" type="text" sortOrder="1" showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>History Retention (days)</label>
+                    <comment>How many days to keep finished (successful or failed) product queue entries before they're cleaned up - used as a visibility/audit trail of what was synced in real time. Pending entries are never removed regardless of age. Shared across every store view (default scope only)</comment>
+                    <validate>validate-digits validate-greater-than-zero</validate>
+                </field>
+            </group>
             <group id="field_mapping" translate="label comment" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
                 <label>Field Mapping</label>
                 <comment>The fields id, sku, title, link, image, price, sale_price, availability, disable_add_to_cart, categories and currency are always added to the feed automatically and must not be added here</comment>

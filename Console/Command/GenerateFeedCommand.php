@@ -12,16 +12,6 @@ class GenerateFeedCommand extends \Symfony\Component\Console\Command\Command
     private $appState;
 
     /**
-     * @var \Magento\Store\Model\StoreManagerInterface
-     */
-    private $storeManager;
-
-    /**
-     * @var \Psr\Log\LoggerInterface
-     */
-    private $logger;
-
-    /**
      * @var \Bydn\SoloSearch\Helper\Config
      */
     private $config;
@@ -32,25 +22,27 @@ class GenerateFeedCommand extends \Symfony\Component\Console\Command\Command
     private $feedGenerator;
 
     /**
+     * @var \Psr\Log\LoggerInterface
+     */
+    private $logger;
+
+    /**
      * @param \Magento\Framework\App\State $appState
-     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
-     * @param \Psr\Log\LoggerInterface $logger
      * @param \Bydn\SoloSearch\Helper\Config $config
      * @param \Bydn\SoloSearch\Model\FeedGenerator $feedGenerator
+     * @param \Psr\Log\LoggerInterface $logger
      */
     public function __construct(
         \Magento\Framework\App\State $appState,
-        \Magento\Store\Model\StoreManagerInterface $storeManager,
-        \Psr\Log\LoggerInterface $logger,
         \Bydn\SoloSearch\Helper\Config $config,
-        \Bydn\SoloSearch\Model\FeedGenerator $feedGenerator
+        \Bydn\SoloSearch\Model\FeedGenerator $feedGenerator,
+        \Psr\Log\LoggerInterface $logger
     ) {
         parent::__construct();
         $this->appState = $appState;
-        $this->storeManager = $storeManager;
-        $this->logger = $logger;
         $this->config = $config;
         $this->feedGenerator = $feedGenerator;
+        $this->logger = $logger;
     }
 
     /**
@@ -65,7 +57,7 @@ class GenerateFeedCommand extends \Symfony\Component\Console\Command\Command
                 self::PARAM_STORE,
                 null,
                 \Symfony\Component\Console\Input\InputOption::VALUE_OPTIONAL,
-                'Store view code or ID. If omitted, generates the feed for every enabled store view.'
+                'Store view ID (not code). If omitted, generates the feed for every enabled store view.'
             ),
         ]);
         parent::configure();
@@ -84,36 +76,12 @@ class GenerateFeedCommand extends \Symfony\Component\Console\Command\Command
 
         if ($storeOption === null) {
             $this->feedGenerator->generateForAllStores();
-            $output->writeln('Feed generation finished for all enabled store views.');
-            $this->logger->info(__METHOD__ . ': end');
-
-            return \Symfony\Component\Console\Command\Command::SUCCESS;
+        }
+        else {
+            $this->feedGenerator->generateForStoreIfEnabled($storeOption);
         }
 
-        try {
-            $store = $this->storeManager->getStore($storeOption);
-        } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
-            $output->writeln("<error>Store not found: {$storeOption}</error>");
-            $this->logger->info(__METHOD__ . ": store {$storeOption} not found");
-            $this->logger->info(__METHOD__ . ': end');
-
-            return \Symfony\Component\Console\Command\Command::FAILURE;
-        }
-
-        if (!$this->config->isEnabled($store->getId())) {
-            $output->writeln("SoloSearch is disabled for store '{$store->getCode()}'.");
-            $this->logger->info(__METHOD__ . ": store {$store->getId()} disabled, skipping");
-            $this->logger->info(__METHOD__ . ': end');
-
-            return \Symfony\Component\Console\Command\Command::FAILURE;
-        }
-
-        // generateForStoreIfEnabled(), not generate() directly, so this path also notifies
-        // SoloSearch to reindex afterwards - the isEnabled() check just above is only here for
-        // this command's own CLI messaging, generateForStoreIfEnabled() repeats it internally.
-        $this->feedGenerator->generateForStoreIfEnabled((int) $store->getId());
-
-        $output->writeln("Feed generation finished for store '{$store->getCode()}'.");
+        $output->writeln('Feed generation finished. See var/log/solosearch.log for more information.');
         $this->logger->info(__METHOD__ . ': end');
 
         return \Symfony\Component\Console\Command\Command::SUCCESS;

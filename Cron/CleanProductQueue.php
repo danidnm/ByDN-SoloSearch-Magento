@@ -2,12 +2,12 @@
 
 namespace Bydn\SoloSearch\Cron;
 
-class SyncProductQueue
+class CleanProductQueue
 {
     /**
-     * @var \Bydn\SoloSearch\Model\ProductQueueSync
+     * @var \Bydn\SoloSearch\Model\ProductQueueCleaner
      */
-    private $productQueueSync;
+    private $productQueueCleaner;
 
     /**
      * @var \Psr\Log\LoggerInterface
@@ -15,19 +15,19 @@ class SyncProductQueue
     private $logger;
 
     /**
-     * @param \Bydn\SoloSearch\Model\ProductQueueSync $productQueueSync
+     * @param \Bydn\SoloSearch\Model\ProductQueueCleaner $productQueueCleaner
      * @param \Psr\Log\LoggerInterface $logger
      */
     public function __construct(
-        \Bydn\SoloSearch\Model\ProductQueueSync $productQueueSync,
+        \Bydn\SoloSearch\Model\ProductQueueCleaner $productQueueCleaner,
         \Psr\Log\LoggerInterface $logger
     ) {
-        $this->productQueueSync = $productQueueSync;
+        $this->productQueueCleaner = $productQueueCleaner;
         $this->logger = $logger;
     }
 
     /**
-     * Runs the real-time product sync for every store view with pending changes
+     * Removes finished product queue history rows past the configured retention window
      *
      * @return void
      */
@@ -35,7 +35,7 @@ class SyncProductQueue
     {
         $this->logger->info(__METHOD__ . ': start');
 
-        $this->productQueueSync->syncAllStores();
+        $this->productQueueCleaner->cleanup();
 
         $this->logger->info(__METHOD__ . ': end');
     }

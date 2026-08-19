@@ -75,12 +75,13 @@ class ProductQueueItemRepository implements ProductQueueItemRepositoryInterface
     /**
      * @inheritDoc
      */
-    public function getByProductAndStore($productId, $storeId)
+    public function findPendingItem($productId, $storeId)
     {
         /** @var \Bydn\SoloSearch\Model\ResourceModel\ProductQueueItem\Collection $collection */
         $collection = $this->collectionFactory->create();
         $collection->addFieldToFilter(ProductQueueItemInterface::PRODUCT_ID, $productId)
             ->addFieldToFilter(ProductQueueItemInterface::STORE_ID, $storeId)
+            ->addFieldToFilter(ProductQueueItemInterface::STATUS, ProductQueueItemInterface::STATUS_PENDING)
             ->setPageSize(1);
 
         $item = $collection->getFirstItem();
@@ -123,5 +124,22 @@ class ProductQueueItemRepository implements ProductQueueItemRepositoryInterface
     public function deleteById($entityId)
     {
         return $this->delete($this->getById($entityId));
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function deleteFinishedOlderThan(\DateTimeInterface $before)
+    {
+        /** @var \Bydn\SoloSearch\Model\ResourceModel\ProductQueueItem\Collection $collection */
+        $collection = $this->collectionFactory->create();
+        $collection->addFieldToFilter(ProductQueueItemInterface::STATUS, [
+            'in' => [ProductQueueItemInterface::STATUS_SUCCESS, ProductQueueItemInterface::STATUS_ERROR],
+        ])->addFieldToFilter(ProductQueueItemInterface::UPDATED_AT, ['lt' => $before->format('Y-m-d H:i:s')]);
+
+        $count = $collection->getSize();
+        $collection->walk('delete');
+
+        return $count;
     }
 }

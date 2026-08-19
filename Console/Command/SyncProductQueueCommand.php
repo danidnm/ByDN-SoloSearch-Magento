@@ -12,16 +12,6 @@ class SyncProductQueueCommand extends \Symfony\Component\Console\Command\Command
     private $appState;
 
     /**
-     * @var \Magento\Store\Model\StoreManagerInterface
-     */
-    private $storeManager;
-
-    /**
-     * @var \Psr\Log\LoggerInterface
-     */
-    private $logger;
-
-    /**
      * @var \Bydn\SoloSearch\Helper\Config
      */
     private $config;
@@ -32,25 +22,27 @@ class SyncProductQueueCommand extends \Symfony\Component\Console\Command\Command
     private $productQueueSync;
 
     /**
+     * @var \Psr\Log\LoggerInterface
+     */
+    private $logger;
+
+    /**
      * @param \Magento\Framework\App\State $appState
-     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
-     * @param \Psr\Log\LoggerInterface $logger
      * @param \Bydn\SoloSearch\Helper\Config $config
      * @param \Bydn\SoloSearch\Model\ProductQueueSync $productQueueSync
+     * @param \Psr\Log\LoggerInterface $logger
      */
     public function __construct(
         \Magento\Framework\App\State $appState,
-        \Magento\Store\Model\StoreManagerInterface $storeManager,
-        \Psr\Log\LoggerInterface $logger,
         \Bydn\SoloSearch\Helper\Config $config,
-        \Bydn\SoloSearch\Model\ProductQueueSync $productQueueSync
+        \Bydn\SoloSearch\Model\ProductQueueSync $productQueueSync,
+        \Psr\Log\LoggerInterface $logger
     ) {
         parent::__construct();
         $this->appState = $appState;
-        $this->storeManager = $storeManager;
-        $this->logger = $logger;
         $this->config = $config;
         $this->productQueueSync = $productQueueSync;
+        $this->logger = $logger;
     }
 
     /**
@@ -65,7 +57,7 @@ class SyncProductQueueCommand extends \Symfony\Component\Console\Command\Command
                 self::PARAM_STORE,
                 null,
                 \Symfony\Component\Console\Input\InputOption::VALUE_OPTIONAL,
-                'Store view code or ID. If omitted, syncs every enabled store view.'
+                'Store view ID (not code). If omitted, syncs every enabled store view.'
             ),
         ]);
         parent::configure();
@@ -84,37 +76,12 @@ class SyncProductQueueCommand extends \Symfony\Component\Console\Command\Command
 
         if ($storeOption === null) {
             $this->productQueueSync->syncAllStores();
-            $output->writeln('Product queue sync finished for all enabled store views.');
-            $this->logger->info(__METHOD__ . ': end');
-
-            return \Symfony\Component\Console\Command\Command::SUCCESS;
+        }
+        else {
+            $this->productQueueSync->syncStoreIfEnabled($storeOption);
         }
 
-        try {
-            $store = $this->storeManager->getStore($storeOption);
-        } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
-            $output->writeln("<error>Store not found: {$storeOption}</error>");
-            $this->logger->info(__METHOD__ . ": store {$storeOption} not found");
-            $this->logger->info(__METHOD__ . ': end');
-
-            return \Symfony\Component\Console\Command\Command::FAILURE;
-        }
-
-        if (!$this->config->isEnabled($store->getId())) {
-            $output->writeln("SoloSearch is disabled for store '{$store->getCode()}'.");
-            $this->logger->info(__METHOD__ . ": store {$store->getId()} disabled, skipping");
-            $this->logger->info(__METHOD__ . ': end');
-
-            return \Symfony\Component\Console\Command\Command::FAILURE;
-        }
-
-        // syncStoreIfEnabled(), not syncStore() directly, so this stays correct even if the
-        // config check above and the sync itself ever race (e.g. disabled between the two) - the
-        // isEnabled() check above is only here for this command's own CLI messaging,
-        // syncStoreIfEnabled() repeats it internally regardless.
-        $this->productQueueSync->syncStoreIfEnabled((int) $store->getId());
-
-        $output->writeln("Product queue sync finished for store '{$store->getCode()}'.");
+        $output->writeln('Product queue sync finished. See var/log/solosearch.log for more information.');
         $this->logger->info(__METHOD__ . ': end');
 
         return \Symfony\Component\Console\Command\Command::SUCCESS;

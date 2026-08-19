@@ -13,10 +13,6 @@
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="entity_id"/>
         </constraint>
-        <constraint xsi:type="unique" referenceId="BYDN_SOLOSEARCH_PRODUCT_QUEUE_PRODUCT_ID_STORE_ID">
-            <column name="product_id"/>
-            <column name="store_id"/>
-        </constraint>
         <index referenceId="BYDN_SOLOSEARCH_PRODUCT_QUEUE_STATUS" indexType="btree">
             <column name="status"/>
         </index>

@@ -23,9 +23,10 @@ class ProductQueueSync
     const BATCH_SIZE = 500;
 
     // A row that keeps failing for the same reason (e.g. a permanently missing required field)
-    // would otherwise retry forever - give up and drop it after this many failed attempts, logging
-    // the final error so it's not silently lost.
-    const MAX_ATTEMPTS = 5;
+    // would otherwise retry forever - it stays STATUS_PENDING and is retried on every syncStore()
+    // run up to this many attempts, then moves to the terminal STATUS_ERROR (see
+    // ProductQueueSync::failItem()) instead of being retried indefinitely.
+    const MAX_ATTEMPTS = 3;
 
     /**
      * @var \Magento\Store\Model\StoreManagerInterface
@@ -174,56 +175,52 @@ class ProductQueueSync
      */
     private function syncUpdates($storeId, array $items)
     {
-        $productIds = array_map(function (ProductQueueItemInterface $item) {
-            return $item->getProductId();
-        }, $items);
-
-        $fieldsByProductId = $this->fieldsBuilder->buildFieldsForProducts($storeId, $productIds);
-
-        $itemsByProductId = [];
-        $payload = [];
+        $indexed = 0;
+        $failed = 0;
         $toDelete = [];
 
+        // Get product ids and classify items by id
+        $productIds = [];
+        $itemsByProductId = [];
         foreach ($items as $item) {
-            $productId = $item->getProductId();
-            $itemsByProductId[$productId] = $item;
+            $productIds[] = $item->getProductId();
+            $itemsByProductId[$item->getProductId()] = $item;
+        }
 
-            if (isset($fieldsByProductId[$productId])) {
-                $payload[] = $fieldsByProductId[$productId];
-            } else {
-                // No longer matches the feed's own inclusion filters (disabled, hidden, wrong
-                // type...) - remove it from the index instead of sending stale/incomplete data.
+        // Generate payload for every item
+        $payload = [];
+        $generatedIds = [];
+        foreach ($this->fieldsBuilder->getCollection($storeId, [], $productIds) as $product) {
+            $productId = $product->getId();
+            $generatedIds[] = $productId;
+            $payload[$productId] = $this->fieldsBuilder->buildFields($product);
+        }
+
+        // Reclasify items as deletes if them does not match the product collection restriction
+        foreach ($items as $item) {
+            if (!in_array($item->getProductId(), $generatedIds)) {
                 $toDelete[] = $item;
             }
         }
 
-        if (empty($payload)) {
-            return [0, 0, $toDelete];
-        }
+        if (!empty($payload)) {
 
-        $results = $this->soloSearchClient->sendProductBatch($storeId, $payload);
+            $results = $this->soloSearchClient->sendProductBatch($storeId, $payload);
+            
+            foreach ($results as $result) {
+                $item = $itemsByProductId[$result['id']] ?? null;
 
-        if ($results === null) {
-            // Nothing sent - every row stays pending as-is, retried on the next run.
-            return [0, 0, $toDelete];
-        }
+                if ($item === null) {
+                    continue;
+                }
 
-        $indexed = 0;
-        $failed = 0;
-
-        foreach ($results as $result) {
-            $item = $itemsByProductId[$result['id']] ?? null;
-
-            if ($item === null) {
-                continue;
-            }
-
-            if ($result['success']) {
-                $this->finishItem($item);
-                $indexed++;
-            } else {
-                $this->failItem($item, (string) $result['error']);
-                $failed++;
+                if ($result['success']) {
+                    $this->finishItem($item);
+                    $indexed++;
+                } else {
+                    $this->failItem($item, (string) $result['error']);
+                    $failed++;
+                }
             }
         }
 
@@ -254,7 +251,10 @@ class ProductQueueSync
     }
 
     /**
-     * A queue row that was sent successfully has nothing left to do here.
+     * A queue row that was sent successfully is kept, not deleted - marked STATUS_SUCCESS as a
+     * visibility/audit trail (see the interface's class docblock). `attempts` is left as-is
+     * (however many it took), not reset - it's useful information here, not just retry-budget
+     * bookkeeping.
      *
      * @param ProductQueueItemInterface $item
      * @return void
@@ -262,15 +262,26 @@ class ProductQueueSync
     private function finishItem(ProductQueueItemInterface $item)
     {
         try {
-            $this->queueRepository->delete($item);
+            $item->setStatus(ProductQueueItemInterface::STATUS_SUCCESS);
+            $item->setResult(null);
+            $this->queueRepository->save($item);
+
+            $this->logger->info(sprintf(
+                __METHOD__ . ': product %s (store %s) %s succeeded',
+                $item->getProductId(),
+                $item->getStoreId(),
+                $item->getOperation()
+            ));
         } catch (\Exception $e) {
-            $this->logger->error(__METHOD__ . ": failed to remove queue item {$item->getEntityId()} after a successful send - " . $e->getMessage());
+            $this->logger->error(__METHOD__ . ": failed to mark queue item {$item->getEntityId()} as successful - " . $e->getMessage());
         }
     }
 
     /**
-     * Records a failed send attempt. Gives up (drops the row, logging why) once MAX_ATTEMPTS is
-     * reached, instead of retrying a permanently-failing product forever.
+     * Records a failed send attempt. Stays STATUS_PENDING (so the next syncStore() run picks it up
+     * and retries it) as long as `attempts` is still under MAX_ATTEMPTS; only moves to the
+     * terminal STATUS_ERROR once that limit is reached, at which point it's kept, not deleted, same
+     * as a successful item (see finishItem()) - `attempts` on the row shows it gave up.
      *
      * @param ProductQueueItemInterface $item
      * @param string $error
@@ -279,25 +290,28 @@ class ProductQueueSync
     private function failItem(ProductQueueItemInterface $item, $error)
     {
         $attempts = $item->getAttempts() + 1;
+        $exhausted = $attempts >= self::MAX_ATTEMPTS;
 
         try {
-            if ($attempts >= self::MAX_ATTEMPTS) {
-                $this->logger->error(sprintf(
-                    'ProductQueueSync: giving up on product %s (store %s) after %s attempts - %s',
-                    $item->getProductId(),
-                    $item->getStoreId(),
-                    $attempts,
-                    $error
-                ));
-                $this->queueRepository->delete($item);
+            $item->setAttempts($attempts);
+            $item->setResult($error);
 
-                return;
+            if ($exhausted) {
+                $item->setStatus(ProductQueueItemInterface::STATUS_ERROR);
             }
 
-            $item->setAttempts($attempts);
-            $item->setStatus(ProductQueueItemInterface::STATUS_ERROR);
-            $item->setResult($error);
             $this->queueRepository->save($item);
+
+            $this->logger->{$exhausted ? 'error' : 'warning'}(sprintf(
+                'ProductQueueSync: product %s (store %s) %s failed (attempt %s/%s)%s - %s',
+                $item->getProductId(),
+                $item->getStoreId(),
+                $item->getOperation(),
+                $attempts,
+                self::MAX_ATTEMPTS,
+                $exhausted ? ', giving up' : ', will retry',
+                $error
+            ));
         } catch (\Exception $e) {
             $this->logger->error(__METHOD__ . ": failed to record failure for queue item {$item->getEntityId()} - " . $e->getMessage());
         }

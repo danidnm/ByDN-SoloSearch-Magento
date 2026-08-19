@@ -122,6 +122,13 @@ class SoloSearchClient
 
         $url = rtrim($apiUrl, '/') . '/api/v1/search-engines/' . rawurlencode($searchEngineId) . '/products/batch';
 
+        // Uncomment while debugging to see exactly what's being sent per product. Left commented
+        // out normally - product payloads are verbose and this would otherwise flood the log on
+        // every real-time sync.
+        // foreach ($items as $productId => $fields) {
+        //     $this->logger->debug(__METHOD__ . ": product {$productId} payload - " . json_encode($fields));
+        // }
+
         try {
             $this->httpClient->setTimeout(self::REQUEST_TIMEOUT_SECONDS);
             $this->httpClient->setHeaders([

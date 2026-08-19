@@ -3,9 +3,16 @@
 namespace Bydn\SoloSearch\Api\Data;
 
 /**
- * A single pending change (update or delete) for one product on one store view, waiting to be
- * sent to SoloSearch's single-product API. Rows are removed once sent successfully - this table
- * only ever holds work still to do, plus recently-failed rows kept around for retry/inspection.
+ * A change (update or delete) for one product on one store view, sent - or waiting to be sent -
+ * to SoloSearch's single-product API. Rows are kept indefinitely rather than deleted once
+ * finished, as a visibility/audit trail of what was synced and how it went (see STATUS_SUCCESS/
+ * STATUS_ERROR) - not just a disposable work queue. There is no DB uniqueness constraint on
+ * (product_id, store_id) - a product can accumulate many STATUS_SUCCESS/STATUS_ERROR rows over
+ * time, one per past sync. What IS guaranteed, at the application level (see
+ * ProductChangeNotifier::enqueue()/Api\ProductQueueItemRepositoryInterface::findPendingItem()), is
+ * that at most one STATUS_PENDING row exists per (product_id, store_id) at any time: a new change
+ * to a product that's already pending reuses that same row (operation refreshed, attempts reset to
+ * 0) instead of adding another one, so unsent work doesn't grow unbounded with repeat edits.
  */
 interface ProductQueueItemInterface
 {
@@ -22,8 +29,19 @@ interface ProductQueueItemInterface
     const OPERATION_UPDATE = 'update';
     const OPERATION_DELETE = 'delete';
 
+    // Not yet sent, or sent and failed but still under ProductQueueSync::MAX_ATTEMPTS - the only
+    // status getPendingItems() picks up, so a row stays here across retries on separate cron runs
+    // (see ProductQueueSync::failItem()). Once MAX_ATTEMPTS is reached it moves to STATUS_ERROR and
+    // stops being retried automatically; it only comes back to STATUS_PENDING (attempts reset to
+    // 0) if the product changes again and gets re-queued (see ProductChangeNotifier::enqueue()).
     const STATUS_PENDING = 'pending';
+
+    // Failed on every attempt up to ProductQueueSync::MAX_ATTEMPTS - a dead end until the product
+    // changes again, not automatically retried by any cron run.
     const STATUS_ERROR = 'error';
+
+    // Sent successfully. Kept, not deleted - see the class docblock.
+    const STATUS_SUCCESS = 'success';
 
     /**
      * @return int|null

@@ -1,0 +1,21 @@
+{
+    "bydn_solosearch_product_queue": {
+        "column": {
+            "entity_id": true,
+            "product_id": true,
+            "store_id": true,
+            "operation": true,
+            "status": true,
+            "attempts": true,
+            "result": true,
+            "created_at": true,
+            "updated_at": true
+        },
+        "index": {
+            "BYDN_SOLOSEARCH_PRODUCT_QUEUE_STATUS": true
+        },
+        "constraint": {
+            "PRIMARY": true
+        }
+    }
+}

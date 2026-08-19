@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Cron:etc/crontab.xsd">
     <group id="bydn_solosearch">
+        <!-- Daily feed generation. Cron schedule is overridable by admin configuration -->
         <job name="bydn_solosearch_generate_feed" instance="Bydn\SoloSearch\Cron\GenerateFeed" method="execute">
             <config_path>crontab/bydn_solosearch/jobs/bydn_solosearch_generate_feed/schedule/cron_expr</config_path>
         </job>
@@ -8,6 +9,11 @@
              generation time above (there's nothing to pick, it just needs to run often). -->
         <job name="bydn_solosearch_sync_product_queue" instance="Bydn\SoloSearch\Cron\SyncProductQueue" method="execute">
             <schedule>* * * * *</schedule>
+        </job>
+        <!-- Product queue history cleanup - fixed off-peak schedule, not admin-configurable
+             (only the retention window itself is, via System Configuration). -->
+        <job name="bydn_solosearch_clean_product_queue" instance="Bydn\SoloSearch\Cron\CleanProductQueue" method="execute">
+            <schedule>0 3 * * *</schedule>
         </job>
     </group>
 </config>

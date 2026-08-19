@@ -123,9 +123,13 @@ class ProductChangeNotifier implements ProductChangeNotifierInterface
     }
 
     /**
-     * Creates or refreshes the pending queue row for this product+store. A fresh change always
-     * resets status back to pending and attempts back to 0 - even a row that previously exhausted
-     * its retries deserves a clean shot once something about the product changes again.
+     * Queues this product+store change. If a still-unprocessed (STATUS_PENDING) row already exists
+     * for this exact product+store, that row is reused - its operation is refreshed to whatever
+     * just happened (a pending "update" can still turn into a "delete" before it's ever sent) and
+     * its attempts counter reset to 0, but it stays the same row/history entry, since nothing was
+     * actually sent for it yet. Otherwise a brand new row is inserted - a product that already has
+     * STATUS_SUCCESS/STATUS_ERROR history is never reused for a new change, so that history stays
+     * intact (see the Api\Data\ProductQueueItemInterface class docblock).
      *
      * Best-effort: a queueing failure is logged and swallowed, never thrown - this must not break
      * the caller's actual product save/delete, which already succeeded by the time this runs.
@@ -138,30 +142,30 @@ class ProductChangeNotifier implements ProductChangeNotifierInterface
     private function enqueue($productId, $storeId, $operation)
     {
         try {
-            $item = $this->queueRepository->getByProductAndStore($productId, $storeId);
+            $item = $this->queueRepository->findPendingItem($productId, $storeId);
 
             if ($item === null) {
                 $item = $this->queueItemFactory->create();
                 $item->setProductId($productId);
                 $item->setStoreId($storeId);
+                $item->setStatus(ProductQueueItemInterface::STATUS_PENDING);
             }
 
             $item->setOperation($operation);
-            $item->setStatus(ProductQueueItemInterface::STATUS_PENDING);
             $item->setAttempts(0);
             $item->setResult(null);
 
             $this->queueRepository->save($item);
 
             $this->logger->info(sprintf(
-                'ProductChangeNotifier: queued product %s (store %s) for %s',
+                __METHOD__ . ': queued product %s (store %s) for %s',
                 $productId,
                 $storeId,
                 $operation
             ));
         } catch (\Exception $e) {
             $this->logger->error(sprintf(
-                'ProductChangeNotifier: failed to queue product %s (store %s, operation %s): %s',
+                __METHOD__ . ': failed to queue product %s (store %s, operation %s): %s',
                 $productId,
                 $storeId,
                 $operation,
