@@ -4,5 +4,10 @@
         <job name="bydn_solosearch_generate_feed" instance="Bydn\SoloSearch\Cron\GenerateFeed" method="execute">
             <config_path>crontab/bydn_solosearch/jobs/bydn_solosearch_generate_feed/schedule/cron_expr</config_path>
         </job>
+        <!-- Real-time product sync - fixed schedule, not admin-configurable like the daily feed
+             generation time above (there's nothing to pick, it just needs to run often). -->
+        <job name="bydn_solosearch_sync_product_queue" instance="Bydn\SoloSearch\Cron\SyncProductQueue" method="execute">
+            <schedule>* * * * *</schedule>
+        </job>
     </group>
 </config>

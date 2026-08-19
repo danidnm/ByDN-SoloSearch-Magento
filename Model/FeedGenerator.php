@@ -25,6 +25,13 @@ class FeedGenerator
     // Attribute codes that hold a media image path and therefore need to be resolved to a full URL.
     const IMAGE_ATTRIBUTE_CODES = ['image', 'small_image', 'thumbnail', 'swatch_image'];
 
+    // buildFieldsForProducts() bulk-loads every category name up front (like generate() always
+    // does) only once a batch is at least this size - below it, resolving categories one at a
+    // time as they're actually referenced (see getCategoryName()) is assumed to be cheaper than
+    // loading the whole store's category tree for a handful of products. Not based on any
+    // measurement, just a reasonable-sounding round number - revisit if it turns out wrong.
+    const CATEGORY_BULK_LOAD_THRESHOLD = 50;
+
     /**
      * @var \Magento\Framework\Filesystem
      */
@@ -314,9 +321,10 @@ class FeedGenerator
      * Builds the product collection for a store view, applying every relevant SoloSearch config option
      *
      * @param array $skus
+     * @param array $productIds
      * @return \Magento\Catalog\Model\ResourceModel\Product\Collection
      */
-    private function getProductCollection(array $skus = [])
+    private function getProductCollection(array $skus = [], array $productIds = [])
     {
         $collection = $this->productCollectionFactory->create();
         $collection->setStoreId($this->storeId);
@@ -326,6 +334,10 @@ class FeedGenerator
 
         if (!empty($skus)) {
             $collection->addFieldToFilter('sku', ['in' => $skus]);
+        }
+
+        if (!empty($productIds)) {
+            $collection->addFieldToFilter('entity_id', ['in' => $productIds]);
         }
 
         $attributeCodes = array_unique(array_merge(
@@ -354,6 +366,51 @@ class FeedGenerator
         $collection->addFieldToFilter('type_id', ['in' => $this->getAllowedTypeIds()]);
 
         return $collection;
+    }
+
+    /**
+     * Computes SoloSearch fields for a specific set of products, outside a full feed generation -
+     * used by the real-time product sync (Model\ProductQueueSync) instead of waiting for the next
+     * scheduled Feed Reindex. Goes through the exact same collection (stock joined, field mapping
+     * applied, status/visibility/type filters) buildFeedXml() uses for the whole catalogue, so a
+     * synced product can never disagree in shape or values with what a full reindex would have
+     * produced for it.
+     *
+     * A product id that doesn't come back in the result means it's currently excluded by the
+     * collection's own filters (disabled, not visible in search, disallowed type...) - callers
+     * must treat a missing id as "remove this product from the index", not as an error.
+     *
+     * Deliberately does NOT bulk-load every category name in the store up front the way
+     * generate() does, unless the batch is large enough (see CATEGORY_BULK_LOAD_THRESHOLD) that
+     * doing so is likely cheaper overall - for a handful of products, getProductCategories() below
+     * resolves (and caches) only the categories actually referenced, instead of loading
+     * potentially thousands of unrelated ones for a one-product sync.
+     *
+     * @param int $storeId
+     * @param int[] $productIds
+     * @return array<int, array<string, mixed>> SoloSearch fields keyed by product id
+     */
+    public function buildFieldsForProducts($storeId, array $productIds)
+    {
+        if (empty($productIds)) {
+            return [];
+        }
+
+        $this->storeId = $storeId;
+        $this->fieldMapping = $this->config->getFieldMapping($storeId);
+        $this->currencyCode = $this->storeManager->getStore($storeId)->getDefaultCurrencyCode();
+
+        if (count($productIds) >= self::CATEGORY_BULK_LOAD_THRESHOLD) {
+            $this->categoryNames = $this->loadCategoryNames();
+        }
+
+        $result = [];
+
+        foreach ($this->getProductCollection([], $productIds) as $product) {
+            $result[(int) $product->getId()] = $this->buildItemFields($product);
+        }
+
+        return $result;
     }
 
     /**
@@ -490,23 +547,47 @@ class FeedGenerator
     private function buildItemNode(\DOMDocument $document, \Magento\Catalog\Model\Product $product)
     {
         $item = $document->createElement('item');
-        
-        // Configurable product price may come from the configurable itseft or from a child.
+
+        // Structural fields are always written even when empty (last param false); everything
+        // else - including mapped fields - is skipped when empty, matching the original
+        // per-field behaviour before this loop replaced the individual appendNode() calls.
+        $alwaysWritten = ['id', 'sku', 'availability', 'disable_add_to_cart'];
+
+        foreach ($this->buildItemFields($product) as $name => $value) {
+            $this->appendNode($document, $item, $name, $value, true, !in_array($name, $alwaysWritten, true));
+        }
+
+        return $item;
+    }
+
+    /**
+     * Computes every SoloSearch field for a single product - the same values buildItemNode()
+     * writes to XML, as a plain array instead. Pulled out on its own so this exact computation
+     * can also be reused outside a full feed generation (see buildFieldsForProducts(), used by the
+     * real-time product sync) without a second, potentially-diverging implementation.
+     *
+     * @param \Magento\Catalog\Model\Product $product
+     * @return array<string, mixed>
+     */
+    private function buildItemFields(\Magento\Catalog\Model\Product $product)
+    {
+        // Configurable product price may come from the configurable itself or from a child.
         // Otherwise, the product itself is the source of the price sent to search engine
         $priceSourceProduct = $this->resolvePriceSourceProduct($product);
-        
-        // Structural fields. Not configurable.
-        $this->appendNode($document, $item, 'id', $product->getEntityId(), true, false);
-        $this->appendNode($document, $item, 'sku', $product->getSku(), true, false);
-        $this->appendNode($document, $item, 'title', $product->getName(), true, true);
-        $this->appendNode($document, $item, 'link', $product->getProductUrl(), true, true);
-        $this->appendNode($document, $item, 'image', $this->getProductAttributeValue($product, 'image'), true, true);
-        $this->appendNode($document, $item, 'price', $this->getProductAttributeValue($priceSourceProduct, 'price'), true, true);
-        $this->appendNode($document, $item, 'sale_price', $this->getProductAttributeValue($priceSourceProduct, 'special_price'), true, true);
-        $this->appendNode($document, $item, 'availability', $this->getProductStockValue($product), true, false);
-        $this->appendNode($document, $item, 'disable_add_to_cart', $this->hasDisabledAddToCart($product) ? '1' : '0', true, false);
-        $this->appendNode($document, $item, 'categories', $this->getProductCategories($product), true, true);
-        $this->appendNode($document, $item, 'currency', $this->currencyCode, true, true);
+
+        $fields = [
+            'id' => $product->getEntityId(),
+            'sku' => $product->getSku(),
+            'title' => $product->getName(),
+            'link' => $product->getProductUrl(),
+            'image' => $this->getProductAttributeValue($product, 'image'),
+            'price' => $this->getProductAttributeValue($priceSourceProduct, 'price'),
+            'sale_price' => $this->getProductAttributeValue($priceSourceProduct, 'special_price'),
+            'availability' => $this->getProductStockValue($product),
+            'disable_add_to_cart' => $this->hasDisabledAddToCart($product) ? '1' : '0',
+            'categories' => $this->getProductCategories($product),
+            'currency' => $this->currencyCode,
+        ];
 
         // Mapped fields in admin
         foreach ($this->fieldMapping as $feedField => $attributeCode) {
@@ -514,10 +595,10 @@ class FeedGenerator
                 continue;
             }
 
-            $this->appendNode($document, $item, $feedField, $this->getProductAttributeValue($product, $attributeCode), true, true);
+            $fields[$feedField] = $this->getProductAttributeValue($product, $attributeCode);
         }
 
-        return $item;
+        return $fields;
     }
 
     /**
@@ -722,12 +803,54 @@ class FeedGenerator
         $names = [];
 
         foreach ($product->getCategoryIds() as $categoryId) {
-            if (isset($this->categoryNames[$categoryId])) {
-                $names[] = $this->categoryNames[$categoryId];
+            $name = $this->getCategoryName($categoryId);
+
+            if ($name !== null) {
+                $names[] = $name;
             }
         }
 
         return implode(' %% ', $names);
+    }
+
+    /**
+     * Resolves a single category's name, through the same $categoryNames cache loadCategoryNames()
+     * bulk-fills for a full generation. If the id isn't cached yet - the normal case for
+     * buildFieldsForProducts() on a batch below CATEGORY_BULK_LOAD_THRESHOLD, which skips the bulk
+     * load entirely - it's looked up on its own and the result cached (including a "not found"
+     * result, as null) so the same id is never queried twice within one run.
+     *
+     * Applies the same only_navigable_categories filter loadCategoryNames() does, so a category
+     * excluded by that setting resolves to null here exactly like it would be absent from the bulk
+     * load - never present in one path and missing in the other.
+     *
+     * @param int $categoryId
+     * @return string|null
+     */
+    private function getCategoryName($categoryId)
+    {
+        if (array_key_exists($categoryId, $this->categoryNames)) {
+            return $this->categoryNames[$categoryId];
+        }
+
+        $categories = $this->categoryCollectionFactory->create();
+        $categories->setStoreId($this->storeId);
+        $categories->addAttributeToSelect('name');
+        $categories->addFieldToFilter('entity_id', $categoryId);
+
+        if ($this->config->onlyNavigableCategories($this->storeId)) {
+            $categories->addAttributeToFilter('include_in_menu', 1);
+        }
+
+        $name = null;
+
+        foreach ($categories as $category) {
+            $name = $category->getName();
+        }
+
+        $this->categoryNames[$categoryId] = $name;
+
+        return $name;
     }
 
     /**

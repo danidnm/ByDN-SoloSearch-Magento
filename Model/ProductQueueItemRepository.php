@@ -91,11 +91,12 @@ class ProductQueueItemRepository implements ProductQueueItemRepositoryInterface
     /**
      * @inheritDoc
      */
-    public function getPendingItems($limit)
+    public function getPendingItems($storeId, $limit)
     {
         /** @var \Bydn\SoloSearch\Model\ResourceModel\ProductQueueItem\Collection $collection */
         $collection = $this->collectionFactory->create();
-        $collection->addFieldToFilter(ProductQueueItemInterface::STATUS, ProductQueueItemInterface::STATUS_PENDING)
+        $collection->addFieldToFilter(ProductQueueItemInterface::STORE_ID, $storeId)
+            ->addFieldToFilter(ProductQueueItemInterface::STATUS, ProductQueueItemInterface::STATUS_PENDING)
             ->setOrder(ProductQueueItemInterface::CREATED_AT, DataCollection::SORT_ORDER_ASC)
             ->setPageSize($limit);
 

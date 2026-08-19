@@ -11,6 +11,7 @@
         <arguments>
             <argument name="commands" xsi:type="array">
                 <item name="solosearchFeedGenerate" xsi:type="object">Bydn\SoloSearch\Console\Command\GenerateFeedCommand</item>
+                <item name="solosearchProductQueueSync" xsi:type="object">Bydn\SoloSearch\Console\Command\SyncProductQueueCommand</item>
             </argument>
         </arguments>
     </type>
@@ -67,6 +68,21 @@
         </arguments>
     </type>
     <type name="Bydn\SoloSearch\Observer\ProductAttributeMassUpdate">
+        <arguments>
+            <argument name="logger" xsi:type="object">Bydn\SoloSearch\Logger\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Bydn\SoloSearch\Model\ProductQueueSync">
+        <arguments>
+            <argument name="logger" xsi:type="object">Bydn\SoloSearch\Logger\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Bydn\SoloSearch\Cron\SyncProductQueue">
+        <arguments>
+            <argument name="logger" xsi:type="object">Bydn\SoloSearch\Logger\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Bydn\SoloSearch\Console\Command\SyncProductQueueCommand">
         <arguments>
             <argument name="logger" xsi:type="object">Bydn\SoloSearch\Logger\Logger</argument>
         </arguments>

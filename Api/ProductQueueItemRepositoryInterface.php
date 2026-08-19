@@ -32,12 +32,15 @@ interface ProductQueueItemRepositoryInterface
     public function getByProductAndStore($productId, $storeId);
 
     /**
-     * Oldest-first, up to $limit pending items - what the sync cron pulls per batch run.
+     * Oldest-first, up to $limit pending items for a single store - what the sync cron pulls per
+     * batch run. Scoped to one store because each store view syncs to its own SoloSearch search
+     * engine (different api_token/search_engine_id), so a batch can never mix stores.
      *
+     * @param int $storeId
      * @param int $limit
      * @return ProductQueueItemInterface[]
      */
-    public function getPendingItems($limit);
+    public function getPendingItems($storeId, $limit);
 
     /**
      * @param ProductQueueItemInterface $item
