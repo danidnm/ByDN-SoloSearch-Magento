@@ -82,7 +82,7 @@ class ProductChangeNotifier implements ProductChangeNotifierInterface
      */
     public function productChanged($productId, $storeId, array $changedAttributeCodes = null)
     {
-        if (!$this->config->isEnabled($storeId)) {
+        if (!$this->config->isEnabled($storeId) || !$this->config->isRealtimeSyncEnabled($storeId)) {
             return;
         }
 
@@ -101,7 +101,7 @@ class ProductChangeNotifier implements ProductChangeNotifierInterface
      */
     public function productDeleted($productId, $storeId)
     {
-        if (!$this->config->isEnabled($storeId)) {
+        if (!$this->config->isEnabled($storeId) || !$this->config->isRealtimeSyncEnabled($storeId)) {
             return;
         }
 

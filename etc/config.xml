@@ -26,6 +26,9 @@
                 <daily_generation_enabled>1</daily_generation_enabled>
                 <generation_time>3,0,0</generation_time>
             </feed_generation>
+            <product_queue>
+                <enable_realtime_sync>1</enable_realtime_sync>
+            </product_queue>
             <field_mapping>
                 <mapping>
                     <brand>

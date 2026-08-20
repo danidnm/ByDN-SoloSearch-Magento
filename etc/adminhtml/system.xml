@@ -81,7 +81,12 @@
             </group>
             <group id="product_queue" translate="label" sortOrder="25" showInDefault="1" showInWebsite="1" showInStore="1">
                 <label>Product Queue</label>
-                <field id="retention_days" translate="label" type="text" sortOrder="1" showInDefault="1" showInWebsite="0" showInStore="0">
+                <field id="enable_realtime_sync" translate="label" type="select" sortOrder="1" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Enable Real-Time Sync</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>Whether product changes are pushed to SoloSearch in real time as they happen. Does not affect the scheduled/manual Feed Reindex above, only this store's real-time product queue. When disabled, product changes are not queued, and any entries still pending when the sync cron runs are marked as failed instead of being sent</comment>
+                </field>
+                <field id="retention_days" translate="label" type="text" sortOrder="2" showInDefault="1" showInWebsite="0" showInStore="0">
                     <label>History Retention (days)</label>
                     <comment>How many days to keep finished (successful or failed) product queue entries before they're cleaned up - used as a visibility/audit trail of what was synced in real time. Pending entries are never removed regardless of age. Shared across every store view (default scope only)</comment>
                     <validate>validate-digits validate-greater-than-zero</validate>

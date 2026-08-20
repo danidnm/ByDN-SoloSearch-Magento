@@ -28,6 +28,11 @@ class ProductQueueSync
     // ProductQueueSync::failItem()) instead of being retried indefinitely.
     const MAX_ATTEMPTS = 3;
 
+    // Set as a pending item's `result` when real-time sync is turned off (Product Queue > Enable
+    // Real-Time Sync) and the sync cron finds it still waiting - see rejectPendingItems(). Same
+    // wording style as the other terminal messages in this class (e.g. syncDeletes()'s failure).
+    const REALTIME_SYNC_DISABLED_MESSAGE = 'Real-time sync is disabled.';
+
     /**
      * @var \Magento\Store\Model\StoreManagerInterface
      */
@@ -116,6 +121,12 @@ class ProductQueueSync
     public function syncStoreIfEnabled($storeId)
     {
         if (!$this->config->isEnabled($storeId)) {
+            return;
+        }
+
+        if (!$this->config->isRealtimeSyncEnabled($storeId)) {
+            $this->rejectPendingItems($storeId);
+
             return;
         }
 
@@ -314,6 +325,52 @@ class ProductQueueSync
             ));
         } catch (\Exception $e) {
             $this->logger->error(__METHOD__ . ": failed to record failure for queue item {$item->getEntityId()} - " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Real-time sync is off for this store - whatever is still pending never gets sent. Every
+     * pending item is rejected outright (see rejectItem()) rather than left in the queue: with
+     * ProductChangeNotifier also gated on the same setting, nothing new is being queued while this
+     * is off, so there is nothing to gain by leaving old rows waiting for a setting change that may
+     * never come. Re-enabling doesn't need these rows back either - the next real product change
+     * re-queues fresh work via ProductChangeNotifier::enqueue() regardless.
+     *
+     * @param int $storeId
+     * @return void
+     */
+    private function rejectPendingItems($storeId)
+    {
+        $items = $this->queueRepository->getPendingItems($storeId, self::BATCH_SIZE);
+
+        if (empty($items)) {
+            return;
+        }
+
+        foreach ($items as $item) {
+            $this->rejectItem($item);
+        }
+
+        $this->logger->info(__METHOD__ . ": store {$storeId} - " . count($items) . ' item(s) rejected, real-time sync disabled');
+    }
+
+    /**
+     * Marks a single pending item as a terminal STATUS_ERROR because real-time sync itself is
+     * disabled - not a genuine send failure, so unlike failItem() this never retries: `attempts` is
+     * left untouched (nothing was actually attempted) and it goes straight to STATUS_ERROR
+     * regardless of MAX_ATTEMPTS, since retrying would just find the setting still off.
+     *
+     * @param ProductQueueItemInterface $item
+     * @return void
+     */
+    private function rejectItem(ProductQueueItemInterface $item)
+    {
+        try {
+            $item->setStatus(ProductQueueItemInterface::STATUS_ERROR);
+            $item->setResult(self::REALTIME_SYNC_DISABLED_MESSAGE);
+            $this->queueRepository->save($item);
+        } catch (\Exception $e) {
+            $this->logger->error(__METHOD__ . ": failed to reject queue item {$item->getEntityId()} - " . $e->getMessage());
         }
     }
 }

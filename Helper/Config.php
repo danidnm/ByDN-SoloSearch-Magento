@@ -26,6 +26,8 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
 
     const XML_PATH_FIELD_MAPPING = 'solosearch/field_mapping/mapping';
 
+    const XML_PATH_PRODUCT_QUEUE_ENABLE_REALTIME_SYNC = 'solosearch/product_queue/enable_realtime_sync';
+
     const XML_PATH_PRODUCT_QUEUE_RETENTION_DAYS = 'solosearch/product_queue/retention_days';
 
     const XML_PATH_API_URL = 'solosearch/general/api_url';
@@ -302,6 +304,23 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
         }
 
         return $mapping;
+    }
+
+    /**
+     * Returns whether product changes should be pushed to SoloSearch in real time (the product
+     * queue - see Model\ProductChangeNotifier/Model\ProductQueueSync). Independent of isEnabled():
+     * a store can keep the scheduled/manual Feed Reindex working while this is off, and vice versa.
+     *
+     * @param int|null $storeId
+     * @return bool
+     */
+    public function isRealtimeSyncEnabled($storeId = null)
+    {
+        return $this->scopeConfig->isSetFlag(
+            self::XML_PATH_PRODUCT_QUEUE_ENABLE_REALTIME_SYNC,
+            \Magento\Store\Model\ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
     }
 
     /**
