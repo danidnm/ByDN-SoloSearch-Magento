@@ -14,6 +14,7 @@
                 <enable>0</enable>
                 <api_url>https://app.solosearch.app</api_url>
                 <api_token></api_token>
+                <search_engine_id></search_engine_id>
                 <include_configurable_products>1</include_configurable_products>
                 <configurable_price_mode>cheapest_child</configurable_price_mode>
                 <include_bundle_products>1</include_bundle_products>

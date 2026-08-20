@@ -34,9 +34,14 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
 
     const XML_PATH_API_TOKEN = 'solosearch/general/api_token';
 
-    const XML_PATH_WIDGET_ENABLE = 'solosearch/widget/enable';
+    const XML_PATH_SEARCH_ENGINE_ID = 'solosearch/general/search_engine_id';
 
-    const XML_PATH_SEARCH_ENGINE_ID = 'solosearch/widget/search_engine_id';
+    // Where Search Engine ID used to live, before it moved to General (it's used by more than
+    // just the widget - see getSearchEngineId()). Read-only fallback so a store that already had
+    // it configured under Widget Embed doesn't lose it after upgrading - never written to again.
+    const XML_PATH_SEARCH_ENGINE_ID_LEGACY = 'solosearch/widget/search_engine_id';
+
+    const XML_PATH_WIDGET_ENABLE = 'solosearch/widget/enable';
 
     const XML_PATH_WIDGET_SCRIPT_URL = 'solosearch/widget/script_url';
 
@@ -362,26 +367,10 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
     }
 
     /**
-     * Returns the UUID of the SearchEngine (in SoloSearch's panel) this store talks to.
-     * Used both for the widget embed's data-engine attribute and to build the reindex
-     * endpoint URL (/api/v1/search-engines/{uuid}/reindex).
-     *
-     * @param int|null $storeId
-     * @return string
-     */
-    public function getSearchEngineId($storeId = null)
-    {
-        return (string) $this->scopeConfig->getValue(
-            self::XML_PATH_SEARCH_ENGINE_ID,
-            \Magento\Store\Model\ScopeInterface::SCOPE_STORE,
-            $storeId
-        );
-    }
-
-    /**
      * Returns the decrypted SoloSearch API Token for this store. Stored encrypted
      * (type="obscure" + Magento\Config\Model\Config\Backend\Encrypted in system.xml),
-     * so it must be decrypted here rather than read as-is.
+     * so it must be decrypted here rather than read as-is. Optional - see getSearchEngineId()
+     * for what's affected when this or the Search Engine ID are left empty.
      *
      * @param int|null $storeId
      * @return string
@@ -395,6 +384,39 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
         );
 
         return $encrypted === '' ? '' : $this->encryptor->decrypt($encrypted);
+    }
+
+    /**
+     * Returns the UUID of the SearchEngine (in SoloSearch's panel) this store talks to. Used by
+     * every API call this module makes (real-time product sync, Feed Reindex notifications) and
+     * by the widget embed's data-engine attribute. Optional, but without it (or without the API
+     * Token above) those features - including the widget - don't work.
+     *
+     * Falls back to the old Widget Embed > Search Engine ID path (XML_PATH_SEARCH_ENGINE_ID_LEGACY)
+     * when the new General one is empty - this field moved from Widget Embed to General (it's used
+     * for more than just the widget), and a store that already had it configured under the old path
+     * shouldn't lose it after upgrading. Never written back to the old path.
+     *
+     * @param int|null $storeId
+     * @return string
+     */
+    public function getSearchEngineId($storeId = null)
+    {
+        $value = (string) $this->scopeConfig->getValue(
+            self::XML_PATH_SEARCH_ENGINE_ID,
+            \Magento\Store\Model\ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
+
+        if ($value !== '') {
+            return $value;
+        }
+
+        return (string) $this->scopeConfig->getValue(
+            self::XML_PATH_SEARCH_ENGINE_ID_LEGACY,
+            \Magento\Store\Model\ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
     }
 
     /**
