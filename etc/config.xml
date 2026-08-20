@@ -29,6 +29,7 @@
             </feed_generation>
             <product_queue>
                 <enable_realtime_sync>1</enable_realtime_sync>
+                <retention_days>7</retention_days>
             </product_queue>
             <field_mapping>
                 <mapping>
