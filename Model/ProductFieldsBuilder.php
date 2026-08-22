@@ -261,6 +261,16 @@ class ProductFieldsBuilder
             'currency' => $this->currencyCode,
         ];
 
+        // A special_price attribute that isn't actually lower than price (equal, or - shouldn't
+        // normally happen, but defend anyway - higher) is not a real discount, so no <sale_price>
+        // node should be sent at all. Bundles already get this treatment inside
+        // getBundlePriceValue() (their "special_price" is a % off, not a plain value comparison);
+        // this covers every other product type, where getProductAttributeValue() just returns the
+        // raw attribute regardless of whether it's still meaningfully lower than price.
+        if ($fields['sale_price'] !== '' && (float) $fields['sale_price'] >= (float) $fields['price']) {
+            $fields['sale_price'] = '';
+        }
+
         // Mapped fields in admin
         foreach ($this->fieldMapping as $feedField => $attributeCode) {
             if ($attributeCode === '' || in_array($feedField, self::STRUCTURAL_FEED_FIELDS, true)) {
