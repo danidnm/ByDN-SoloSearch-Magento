@@ -43,6 +43,11 @@ class FeedGenerator
     private $logger;
 
     /**
+     * @var \Magento\Store\Model\App\Emulation
+     */
+    private $emulation;
+
+    /**
      * Store view id for the current generate() call.
      *
      * @var int
@@ -56,6 +61,7 @@ class FeedGenerator
      * @param \Bydn\SoloSearch\Model\SoloSearchClient $soloSearchClient
      * @param \Bydn\SoloSearch\Helper\Config $config
      * @param \Psr\Log\LoggerInterface $logger
+     * @param \Magento\Store\Model\App\Emulation $emulation
      */
     public function __construct(
         \Magento\Framework\Filesystem $filesystem,
@@ -63,7 +69,8 @@ class FeedGenerator
         ProductFieldsBuilder $fieldsBuilder,
         \Bydn\SoloSearch\Model\SoloSearchClient $soloSearchClient,
         \Bydn\SoloSearch\Helper\Config $config,
-        \Psr\Log\LoggerInterface $logger
+        \Psr\Log\LoggerInterface $logger,
+        \Magento\Store\Model\App\Emulation $emulation
     ) {
         $this->filesystem = $filesystem;
         $this->storeManager = $storeManager;
@@ -71,6 +78,7 @@ class FeedGenerator
         $this->soloSearchClient = $soloSearchClient;
         $this->config = $config;
         $this->logger = $logger;
+        $this->emulation = $emulation;
     }
 
     /**
@@ -181,7 +189,18 @@ class FeedGenerator
 
         $this->storeId = $storeId;
 
-        $this->writeFeedFile($this->buildFeedXml($skus));
+        // Emulates the store view so translated values (e.g. a Yes/No attribute, whose labels come
+        // from __('Yes')/__('No') instead of the database) are exported in the store's own locale -
+        // otherwise they depend on how the process was started (cron loads translations, a console
+        // command doesn't), and the same store would export a translated label or "Yes" depending on it.
+        $this->emulation->startEnvironmentEmulation($storeId, \Magento\Framework\App\Area::AREA_FRONTEND, true);
+        try {
+            $xmlContent = $this->buildFeedXml($skus);
+        } finally {
+            $this->emulation->stopEnvironmentEmulation();
+        }
+
+        $this->writeFeedFile($xmlContent);
 
         $this->logger->info(__METHOD__ . ": end (store {$storeId})");
     }

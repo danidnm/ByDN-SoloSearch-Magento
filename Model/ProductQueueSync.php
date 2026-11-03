@@ -64,12 +64,18 @@ class ProductQueueSync
     private $logger;
 
     /**
+     * @var \Magento\Store\Model\App\Emulation
+     */
+    private $emulation;
+
+    /**
      * @param \Magento\Store\Model\StoreManagerInterface $storeManager
      * @param Config $config
      * @param ProductQueueItemRepositoryInterface $queueRepository
      * @param ProductFieldsBuilder $fieldsBuilder
      * @param SoloSearchClient $soloSearchClient
      * @param \Psr\Log\LoggerInterface $logger
+     * @param \Magento\Store\Model\App\Emulation $emulation
      */
     public function __construct(
         \Magento\Store\Model\StoreManagerInterface $storeManager,
@@ -77,7 +83,8 @@ class ProductQueueSync
         ProductQueueItemRepositoryInterface $queueRepository,
         ProductFieldsBuilder $fieldsBuilder,
         SoloSearchClient $soloSearchClient,
-        \Psr\Log\LoggerInterface $logger
+        \Psr\Log\LoggerInterface $logger,
+        \Magento\Store\Model\App\Emulation $emulation
     ) {
         $this->storeManager = $storeManager;
         $this->config = $config;
@@ -85,6 +92,7 @@ class ProductQueueSync
         $this->fieldsBuilder = $fieldsBuilder;
         $this->soloSearchClient = $soloSearchClient;
         $this->logger = $logger;
+        $this->emulation = $emulation;
     }
 
     /**
@@ -198,13 +206,19 @@ class ProductQueueSync
             $itemsByProductId[$item->getProductId()] = $item;
         }
 
-        // Generate payload for every item
+        // Generate payload for every item, emulating the store view so translated values are the
+        // same ones the feed exports (see FeedGenerator::generate())
         $payload = [];
         $generatedIds = [];
-        foreach ($this->fieldsBuilder->getCollection($storeId, [], $productIds) as $product) {
-            $productId = $product->getId();
-            $generatedIds[] = $productId;
-            $payload[$productId] = $this->fieldsBuilder->buildFields($product);
+        $this->emulation->startEnvironmentEmulation($storeId, \Magento\Framework\App\Area::AREA_FRONTEND, true);
+        try {
+            foreach ($this->fieldsBuilder->getCollection($storeId, [], $productIds) as $product) {
+                $productId = $product->getId();
+                $generatedIds[] = $productId;
+                $payload[$productId] = $this->fieldsBuilder->buildFields($product);
+            }
+        } finally {
+            $this->emulation->stopEnvironmentEmulation();
         }
 
         // Reclasify items as deletes if them does not match the product collection restriction
